@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#070d19;--surface:#0d1627;--surface2:#152034;--border:#1e2d45;
+      --text:#e2e8f0;--muted:#64748b;
+      --accent:#6366f1;--green:#10b981;--blue:#3b82f6;
+      --yellow:#f59e0b;--red:#ef4444;--orange:#f97316;--purple:#a855f7;
+    }
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+    /* ── Header ── */
+    .header{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+    .header h1{font-size:17px;font-weight:700;flex:1}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    .badge{padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600}
+    .badge-green{background:rgba(16,185,129,.15);color:var(--green)}
+    .badge-muted{background:rgba(100,116,139,.12);color:var(--muted)}
+
+    /* ── Orchestrate bar ── */
+    .obar{display:flex;gap:10px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+    .obar input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+    .obar input:focus{border-color:var(--accent)}
+    .obar input::placeholder{color:var(--muted)}
+    .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 22px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s}
+    .btn:hover{opacity:.85}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+
+    /* ── Stats ── */
+    .stats{display:flex;gap:10px;padding:10px 24px;background:var(--bg);flex-shrink:0;flex-wrap:wrap}
+    .sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;min-width:90px}
+    .sc-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+    .sc-val{font-weight:700;font-size:18px;margin-top:2px}
+
+    /* ── Main grid ── */
+    .main{display:grid;grid-template-columns:1fr 360px;flex:1;overflow:hidden}
+
+    /* ── Feed ── */
+    .feed-panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+    .phead{padding:10px 24px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+    .ws-ok{color:var(--green);font-size:11px}
+    .ws-no{color:var(--red);font-size:11px}
+    #feed{flex:1;overflow-y:auto;padding:4px 0}
+    #feed::-webkit-scrollbar{width:4px}
+    #feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .ev{display:flex;gap:10px;padding:7px 24px;border-bottom:1px solid rgba(30,45,69,.5);align-items:flex-start;animation:fi .25s ease}
+    @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    .ev:hover{background:var(--surface)}
+    .ev-time{color:var(--muted);font-size:10px;font-family:monospace;min-width:58px;margin-top:3px}
+    .ev-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;min-width:72px;text-align:center;margin-top:2px;flex-shrink:0}
+    .ev-msg{color:var(--text);font-size:12px;line-height:1.5;word-break:break-word}
+    .t-message{background:rgba(59,130,246,.2);color:#60a5fa}
+    .t-reply{background:rgba(16,185,129,.2);color:#34d399}
+    .t-agent{background:rgba(168,85,247,.2);color:#c084fc}
+    .t-orchestrator{background:rgba(249,115,22,.2);color:#fb923c}
+    .t-reel{background:rgba(245,158,11,.2);color:#fbbf24}
+    .t-youtube{background:rgba(239,68,68,.2);color:#f87171}
+    .t-error{background:rgba(239,68,68,.2);color:#f87171}
+    .t-system{background:rgba(100,116,139,.2);color:#94a3b8}
+
+    /* ── Right panel ── */
+    .right{display:flex;flex-direction:column;overflow:hidden}
+    .rsec{display:flex;flex-direction:column;border-bottom:1px solid var(--border);overflow:hidden}
+    .rsec:last-child{border-bottom:none;flex:1}
+    .clist{overflow-y:auto;flex:1;padding:4px 0}
+    .clist::-webkit-scrollbar{width:4px}
+    .clist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .cc{padding:9px 16px;border-bottom:1px solid rgba(30,45,69,.5);cursor:default}
+    .cc:hover{background:var(--surface2)}
+    .cc-title{font-weight:600;font-size:13px;text-transform:capitalize}
+    .cc-meta{color:var(--muted);font-size:11px;margin-top:3px}
+    .cc-script{color:var(--muted);font-size:11px;margin-top:4px;line-height:1.4}
+    .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;margin-right:4px}
+    .tag-v{background:rgba(245,158,11,.2);color:#fbbf24}
+    .tag-s{background:rgba(16,185,129,.2);color:#34d399}
+    .glist{padding:4px 0;overflow-y:auto;flex:1}
+    .gi{padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(30,45,69,.5);font-size:13px}
+    .gdot{width:6px;height:6px;background:var(--green);border-radius:50%}
+    .gid{color:var(--muted);font-size:11px;margin-left:auto}
+    .empty{padding:12px 16px;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧠 Mission Control</h1>
+  <span id="bot-badge" class="badge badge-green"><span class="dot"></span>Connecting…</span>
+  <span id="uptime-badge" class="badge badge-muted">—</span>
+</div>
+
+<div class="obar">
+  <input id="task" type="text" placeholder="Give the orchestrator a task — e.g. Research top AI tools and write a LinkedIn post about it" />
+  <button class="btn" id="run-btn" onclick="runTask()">▶ Run Task</button>
+</div>
+
+<div class="stats">
+  <div class="sc"><div class="sc-label">Bot</div><div class="sc-val" id="s-bot" style="color:var(--green)">●</div></div>
+  <div class="sc"><div class="sc-label">Agents</div><div class="sc-val">3</div></div>
+  <div class="sc"><div class="sc-label">Groups</div><div class="sc-val" id="s-groups">—</div></div>
+  <div class="sc"><div class="sc-label">Reels</div><div class="sc-val" id="s-reels">—</div></div>
+  <div class="sc"><div class="sc-label">Uptime</div><div class="sc-val" id="s-uptime" style="font-size:14px">—</div></div>
+</div>
+
+<div class="main">
+
+  <!-- Live Feed -->
+  <div class="feed-panel">
+    <div class="phead">
+      Live Feed
+      <span id="ws-s" class="ws-no">● disconnected</span>
+    </div>
+    <div id="feed"></div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right">
+
+    <div class="rsec" style="max-height:55%">
+      <div class="phead">Content Library</div>
+      <div class="clist" id="clist"><div class="empty">Loading…</div></div>
+    </div>
+
+    <div class="rsec" style="flex:1">
+      <div class="phead">Telegram Groups</div>
+      <div class="glist" id="glist"><div class="empty">Loading…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let ws;
+
+  // ── WebSocket ────────────────────────────────────────────────────────────────
+
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}`);
+    ws.onopen = () => {
+      document.getElementById('ws-s').className = 'ws-ok';
+      document.getElementById('ws-s').textContent = '● connected';
+    };
+    ws.onmessage = e => addEvent(JSON.parse(e.data));
+    ws.onclose = () => {
+      document.getElementById('ws-s').className = 'ws-no';
+      document.getElementById('ws-s').textContent = '● disconnected';
+      setTimeout(connect, 3000);
+    };
+  }
+
+  function addEvent(ev) {
+    const feed = document.getElementById('feed');
+    const atBottom = feed.scrollHeight - feed.scrollTop <= feed.clientHeight + 60;
+    const d = document.createElement('div');
+    d.className = 'ev';
+    const t = new Date(ev.ts);
+    const time = [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+    d.innerHTML = `<span class="ev-time">${time}</span><span class="ev-badge t-${ev.type}">${ev.type.toUpperCase()}</span><span class="ev-msg">${esc(ev.message)}</span>`;
+    feed.appendChild(d);
+    while (feed.children.length > 300) feed.removeChild(feed.firstChild);
+    if (atBottom) feed.scrollTop = feed.scrollHeight;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Orchestrate ──────────────────────────────────────────────────────────────
+
+  async function runTask() {
+    const input = document.getElementById('task');
+    const btn   = document.getElementById('run-btn');
+    const task  = input.value.trim();
+    if (!task) return;
+    btn.disabled = true; btn.textContent = '⏳ Running…';
+    try {
+      await fetch('/api/orchestrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+      input.value = '';
+    } catch(e) { console.error(e); }
+    btn.disabled = false; btn.textContent = '▶ Run Task';
+  }
+
+  document.getElementById('task').addEventListener('keydown', e => { if (e.key === 'Enter') runTask(); });
+
+  // ── Data loading ─────────────────────────────────────────────────────────────
+
+  async function loadStatus() {
+    try {
+      const s = await (await fetch('/api/status')).json();
+      document.getElementById('s-groups').textContent  = s.groups;
+      document.getElementById('s-uptime').textContent  = fmt(s.uptime);
+      document.getElementById('s-bot').textContent     = s.bot === 'online' ? '●' : '○';
+      document.getElementById('s-bot').style.color     = s.bot === 'online' ? 'var(--green)' : 'var(--muted)';
+      document.getElementById('bot-badge').innerHTML   = `<span class="dot"></span>${s.bot.toUpperCase()}`;
+      document.getElementById('uptime-badge').textContent = '↑ ' + fmt(s.uptime);
+    } catch {}
+  }
+
+  async function loadContent() {
+    try {
+      const items = await (await fetch('/api/content')).json();
+      document.getElementById('s-reels').textContent = items.length;
+      const el = document.getElementById('clist');
+      if (!items.length) { el.innerHTML = '<div class="empty">No content yet</div>'; return; }
+      el.innerHTML = items.slice(0, 30).map(i => `
+        <div class="cc">
+          <div class="cc-title">${esc(i.topic)}</div>
+          <div class="cc-meta">${i.date}${i.hasVideo ? ' <span class="tag tag-v">▶ Video</span>' : ''}${i.hasScript ? ' <span class="tag tag-s">✎ Script</span>' : ''}</div>
+          ${i.script ? `<div class="cc-script">${esc(i.script)}…</div>` : ''}
+        </div>`).join('');
+    } catch {}
+  }
+
+  async function loadGroups() {
+    try {
+      const g = await (await fetch('/api/groups')).json();
+      const entries = Object.entries(g);
+      document.getElementById('s-groups').textContent = entries.length;
+      const el = document.getElementById('glist');
+      if (!entries.length) { el.innerHTML = '<div class="empty">No groups yet</div>'; return; }
+      el.innerHTML = entries.map(([n, id]) => `
+        <div class="gi"><span class="gdot"></span><span>${esc(n)}</span><span class="gid">${id}</span></div>
+      `).join('');
+    } catch {}
+  }
+
+  function fmt(s) {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+
+  connect();
+  loadStatus(); loadContent(); loadGroups();
+  setInterval(loadStatus,  10000);
+  setInterval(loadContent, 30000);
+  setInterval(loadGroups,  30000);
+</script>
+</body>
+</html>

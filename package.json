@@ -1,0 +1,22 @@
+{
+  "name": "personal-agent",
+  "version": "1.0.0",
+  "description": "Personal AI agent powered by OpenAI",
+  "type": "module",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node index.js",
+    "bot": "node bot.js",
+    "cli": "node agent.js"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "googleapis": "^173.0.0",
+    "node-fetch": "^3.3.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "openai": "^4.98.0",
+    "ws": "^8.21.0"
+  }
+}
