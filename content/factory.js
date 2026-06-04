@@ -122,7 +122,13 @@ export async function generateAIImages(topic, dir, count = 4, onProgress) {
   ];
   const imagePaths = new Array(count);
   await Promise.all(prompts.slice(0, count).map(async (prompt, i) => {
-    const res = await openai.images.generate({ model: 'dall-e-3', prompt, n: 1, size: '1024x1792', quality: 'standard' });
+    let res;
+    try {
+      res = await openai.images.generate({ model: 'dall-e-3', prompt, n: 1, size: '1024x1792', quality: 'standard' });
+    } catch {
+      // fall back to dall-e-2 if dall-e-3 not available on this account
+      res = await openai.images.generate({ model: 'dall-e-2', prompt, n: 1, size: '1024x1024' });
+    }
     const imgPath = path.join(dir, `bg_${i}.png`);
     await downloadUrl(res.data[0].url, imgPath);
     imagePaths[i] = imgPath;
