@@ -271,8 +271,9 @@ bot.on('photo', async (msg) => {
   await downloadFile(fileUrl, imgPath);
   session.images[idx] = imgPath;
 
+  const photoCount = session.images.filter(Boolean).length;
   bot.sendMessage(chatId,
-    `✅ Photo ${session.images.length} received. Send more or tap *Done*.`,
+    `✅ Photo ${photoCount} received. Send more or tap *Done*.`,
     { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '✅ Done — create reel', callback_data: 'reel_done' }]] } }
   );
 });
@@ -305,7 +306,19 @@ bot.on('callback_query', async (query) => {
   if (query.data === 'reel_done') {
     const session = contentSessions.get(chatId);
     if (!session) return bot.sendMessage(chatId, '⚠️ No active session. Use /content [topic]');
-    if (!session.images.length) return bot.sendMessage(chatId, '⚠️ No photos received yet. Send at least one photo.');
+    if (session.state === 'generating') return; // already running — ignore duplicate tap
+
+    const validImages = session.images.filter(Boolean);
+    const pending = session.images.length - validImages.length;
+
+    if (session.images.length === 0) {
+      return bot.sendMessage(chatId, '⚠️ No photos received yet. Send at least one photo.');
+    }
+    if (pending > 0) {
+      return bot.sendMessage(chatId, `⏳ Still uploading ${pending} photo(s)… tap Done again in a moment.`);
+    }
+
+    session.state = 'generating'; // lock before async work to prevent double-trigger
     return runReel(chatId, session);
   }
 
