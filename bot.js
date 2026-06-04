@@ -150,13 +150,21 @@ bot.onText(/\/start/,         (msg) => { if (msg.from?.id !== ALLOWED_ID) return
 bot.onText(/\/clear/,         (msg) => { if (msg.from?.id !== ALLOWED_ID) return; histories.delete(msg.chat.id); sendCleared(msg.chat.id); });
 bot.onText(/\/help/,          (msg) => { if (msg.from?.id !== ALLOWED_ID) return; sendHelp(msg.chat.id); });
 bot.onText(/\/groups/,        (msg) => { if (msg.from?.id !== ALLOWED_ID) return; sendGroupsList(msg.chat.id); });
-bot.onText(/\/content (.+)/,  (msg, match) => { if (msg.from?.id !== ALLOWED_ID) return; askImageChoice(msg.chat.id, match[1].trim()); });
+bot.onText(/\/content (.+)/,  (msg, match) => {
+  if (msg.from?.id !== ALLOWED_ID) return;
+  const full = match[1].trim();
+  // Extract "send to [group]" / "then send [to] [group]" from the instruction
+  const sendMatch = full.match(/(?:then\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?(.+?)(?:\s+group)?$/i);
+  const topic = full.replace(/[,.]?\s*(?:then\s+)?(?:and\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?.+$/i, '').trim();
+  const sendToGroup = sendMatch ? sendMatch[1].trim() : null;
+  askImageChoice(msg.chat.id, topic || full, sendToGroup);
+});
 bot.onText(/^\/content$/,     (msg) => { if (msg.from?.id !== ALLOWED_ID) return; bot.sendMessage(msg.chat.id, 'Usage: /content [topic]'); });
 
 // ── Content Factory — step 1: ask image source ────────────────────────────────
 
-function askImageChoice(chatId, topic) {
-  contentSessions.set(chatId, { topic, dir: outDir(topic), images: [], state: 'awaiting_choice' });
+function askImageChoice(chatId, topic, sendToGroup = null) {
+  contentSessions.set(chatId, { topic, dir: outDir(topic), images: [], state: 'awaiting_choice', sendToGroup });
   bot.sendMessage(chatId,
     `🎬 *Reel topic:* _${topic}_\n\nBackground images:`,
     {
@@ -224,25 +232,33 @@ async function runReel(chatId, session) {
       await bot.editMessageText(msg, { chat_id: chatId, message_id: statusMsg.message_id }).catch(() => {});
     }, session.dir);
 
+    const sendToGroup = session.sendToGroup;
     contentSessions.delete(chatId);
 
     await bot.sendAudio(chatId, result.audio, { caption: '🎙 Voiceover' });
     await bot.sendVideo(chatId, result.video, { caption: `🎬 *${session.topic}*`, parse_mode: 'Markdown' });
-    await bot.sendMessage(chatId, `✅ Reel ready! Uploading to YouTube...`, { parse_mode: 'Markdown' });
 
-    // Auto-upload to YouTube
-    try {
-      const { url } = await uploadToYouTube({
-        videoPath: result.video,
-        title: session.topic,
-        privacyStatus: 'public'
-      });
-      log('youtube', `Published: ${url}`);
-      await bot.sendMessage(chatId, `📺 Published!\n${url}`);
-    } catch (ytErr) {
-      console.error('[YT]', ytErr.message);
-      await bot.sendMessage(chatId, `⚠️ YouTube upload failed: ${ytErr.message}`);
+    // Send to Telegram group if requested
+    if (sendToGroup) {
+      const g = resolveGroup(sendToGroup);
+      if (g.error) {
+        await bot.sendMessage(chatId, `⚠️ Could not find group "${sendToGroup}": ${g.error}`);
+      } else {
+        await bot.sendVideo(g.chatId, result.video, { caption: `🎬 ${session.topic}` });
+        await bot.sendMessage(chatId, `✅ Reel sent to *${g.name}*`, { parse_mode: 'Markdown' });
+        log('reel', `Sent to group: ${g.name}`);
+      }
     }
+
+    // Ask about YouTube — don't auto-upload
+    await bot.sendMessage(chatId, `✅ Reel ready! Upload to YouTube?`, {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '📺 Yes, upload to YouTube', callback_data: `yt_upload:${encodeURIComponent(result.video)}:${encodeURIComponent(session.topic)}` },
+          { text: '✖ No thanks', callback_data: 'yt_skip' }
+        ]]
+      }
+    });
   } catch (err) {
     contentSessions.delete(chatId);
     bot.sendMessage(chatId, `⚠️ Render error: ${err.message}`);
@@ -320,6 +336,28 @@ bot.on('callback_query', async (query) => {
 
     session.state = 'generating'; // lock before async work to prevent double-trigger
     return runReel(chatId, session);
+  }
+
+  if (query.data.startsWith('yt_upload:')) {
+    const parts = query.data.split(':');
+    const videoPath = decodeURIComponent(parts[1]);
+    const title     = decodeURIComponent(parts[2]);
+    await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {});
+    const uploading = await bot.sendMessage(chatId, '📤 Uploading to YouTube…');
+    try {
+      const { url } = await uploadToYouTube({ videoPath, title, privacyStatus: 'public' });
+      log('youtube', `Published: ${url}`);
+      await bot.editMessageText(`📺 Published!\n${url}`, { chat_id: chatId, message_id: uploading.message_id });
+    } catch (ytErr) {
+      await bot.editMessageText(`⚠️ YouTube upload failed: ${ytErr.message}`, { chat_id: chatId, message_id: uploading.message_id });
+      console.error('[YT]', ytErr.message);
+    }
+    return;
+  }
+
+  if (query.data === 'yt_skip') {
+    await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {});
+    return;
   }
 
   switch (query.data) {
