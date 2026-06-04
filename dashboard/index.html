@@ -3,181 +3,852 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mission Control</title>
+  <title>Orchestrator</title>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    :root{
-      --bg:#070d19;--surface:#0d1627;--surface2:#152034;--border:#1e2d45;
-      --text:#e2e8f0;--muted:#64748b;
-      --accent:#6366f1;--green:#10b981;--blue:#3b82f6;
-      --yellow:#f59e0b;--red:#ef4444;--orange:#f97316;--purple:#a855f7;
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:       #05090f;
+      --surface:  #0b1120;
+      --surface2: #101c2e;
+      --surface3: #162030;
+      --border:   #1a2840;
+      --border2:  #243348;
+      --text:     #dde5f0;
+      --muted:    #4d6480;
+      --dim:      #2a3f58;
+      --accent:   #4f8ef7;
+      --accent2:  #3b6ed4;
+      --green:    #22c55e;
+      --yellow:   #f59e0b;
+      --red:      #ef4444;
+      --purple:   #a855f7;
+      --orange:   #f97316;
+      --cyan:     #06b6d4;
     }
-    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
-    /* ── Header ── */
-    .header{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-    .header h1{font-size:17px;font-weight:700;flex:1}
-    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-    .badge{padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600}
-    .badge-green{background:rgba(16,185,129,.15);color:var(--green)}
-    .badge-muted{background:rgba(100,116,139,.12);color:var(--muted)}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-    /* ── Orchestrate bar ── */
-    .obar{display:flex;gap:10px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-    .obar input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
-    .obar input:focus{border-color:var(--accent)}
-    .obar input::placeholder{color:var(--muted)}
-    .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 22px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s}
-    .btn:hover{opacity:.85}
-    .btn:disabled{opacity:.45;cursor:not-allowed}
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 0 24px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
 
-    /* ── Stats ── */
-    .stats{display:flex;gap:10px;padding:10px 24px;background:var(--bg);flex-shrink:0;flex-wrap:wrap}
-    .sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;min-width:90px}
-    .sc-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-    .sc-val{font-weight:700;font-size:18px;margin-top:2px}
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
 
-    /* ── Main grid ── */
-    .main{display:grid;grid-template-columns:1fr 360px;flex:1;overflow:hidden}
+    .logo-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #4f8ef7, #a855f7);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
 
-    /* ── Feed ── */
-    .feed-panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
-    .phead{padding:10px 24px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-    .ws-ok{color:var(--green);font-size:11px}
-    .ws-no{color:var(--red);font-size:11px}
-    #feed{flex:1;overflow-y:auto;padding:4px 0}
-    #feed::-webkit-scrollbar{width:4px}
-    #feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-    .ev{display:flex;gap:10px;padding:7px 24px;border-bottom:1px solid rgba(30,45,69,.5);align-items:flex-start;animation:fi .25s ease}
-    @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-    .ev:hover{background:var(--surface)}
-    .ev-time{color:var(--muted);font-size:10px;font-family:monospace;min-width:58px;margin-top:3px}
-    .ev-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;min-width:72px;text-align:center;margin-top:2px;flex-shrink:0}
-    .ev-msg{color:var(--text);font-size:12px;line-height:1.5;word-break:break-word}
-    .t-message{background:rgba(59,130,246,.2);color:#60a5fa}
-    .t-reply{background:rgba(16,185,129,.2);color:#34d399}
-    .t-agent{background:rgba(168,85,247,.2);color:#c084fc}
-    .t-orchestrator{background:rgba(249,115,22,.2);color:#fb923c}
-    .t-reel{background:rgba(245,158,11,.2);color:#fbbf24}
-    .t-youtube{background:rgba(239,68,68,.2);color:#f87171}
-    .t-error{background:rgba(239,68,68,.2);color:#f87171}
-    .t-system{background:rgba(100,116,139,.2);color:#94a3b8}
+    .header-sep { width: 1px; height: 20px; background: var(--border2); }
 
-    /* ── Right panel ── */
-    .right{display:flex;flex-direction:column;overflow:hidden}
-    .rsec{display:flex;flex-direction:column;border-bottom:1px solid var(--border);overflow:hidden}
-    .rsec:last-child{border-bottom:none;flex:1}
-    .clist{overflow-y:auto;flex:1;padding:4px 0}
-    .clist::-webkit-scrollbar{width:4px}
-    .clist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-    .cc{padding:9px 16px;border-bottom:1px solid rgba(30,45,69,.5);cursor:default}
-    .cc:hover{background:var(--surface2)}
-    .cc-title{font-weight:600;font-size:13px;text-transform:capitalize}
-    .cc-meta{color:var(--muted);font-size:11px;margin-top:3px}
-    .cc-script{color:var(--muted);font-size:11px;margin-top:4px;line-height:1.4}
-    .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;margin-right:4px}
-    .tag-v{background:rgba(245,158,11,.2);color:#fbbf24}
-    .tag-s{background:rgba(16,185,129,.2);color:#34d399}
-    .glist{padding:4px 0;overflow-y:auto;flex:1}
-    .gi{padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(30,45,69,.5);font-size:13px}
-    .gdot{width:6px;height:6px;background:var(--green);border-radius:50%}
-    .gid{color:var(--muted);font-size:11px;margin-left:auto}
-    .empty{padding:12px 16px;color:var(--muted);font-size:12px}
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(34,197,94,.1);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,.2);
+    }
+
+    .status-pill.offline {
+      background: rgba(239,68,68,.1);
+      color: var(--red);
+      border-color: rgba(239,68,68,.2);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .twin-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .twin-badge .dot { animation: none; }
+    .twin-badge.bot-online { color: var(--cyan); border-color: rgba(6,182,212,.25); background: rgba(6,182,212,.07); }
+
+    .uptime-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── COMMAND BAR ── */
+    .cmdbar {
+      padding: 12px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .cmdbar-inner {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 4px 4px 4px 16px;
+      transition: border-color .2s;
+    }
+
+    .cmdbar-inner:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,142,247,.1);
+    }
+
+    .cmdbar-inner input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 13.5px;
+      padding: 7px 0;
+    }
+
+    .cmdbar-inner input::placeholder { color: var(--muted); }
+
+    .run-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, opacity .15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .run-btn:hover { background: var(--accent2); }
+    .run-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── STATS ROW ── */
+    .stats {
+      display: flex;
+      gap: 8px;
+      padding: 8px 24px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .stat-icon { font-size: 14px; opacity: .8; }
+
+    .stat-body { line-height: 1; }
+
+    .stat-val {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: 2px;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: grid;
+      grid-template-columns: 220px 1fr 280px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL — Agents ── */
+    .left-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      padding: 10px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .agent-list { padding: 8px; overflow-y: auto; flex: 1; }
+
+    .agent-card {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 6px;
+      background: var(--surface2);
+      cursor: default;
+      transition: border-color .15s, background .15s;
+    }
+
+    .agent-card:hover { border-color: var(--border2); background: var(--surface3); }
+    .agent-card.active { border-color: rgba(79,142,247,.4); background: rgba(79,142,247,.06); }
+
+    .agent-header { display: flex; align-items: center; gap: 8px; }
+
+    .agent-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .agent-name { font-weight: 600; font-size: 12px; }
+
+    .agent-status {
+      margin-left: auto;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      background: rgba(34,197,94,.1);
+      color: var(--green);
+    }
+
+    .agent-status.busy {
+      background: rgba(245,158,11,.12);
+      color: var(--yellow);
+    }
+
+    .agent-desc { font-size: 10px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+
+    .left-divider {
+      border-top: 1px solid var(--border);
+      margin: 4px 8px;
+    }
+
+    .channel-section { padding: 8px; }
+
+    .channel-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+    }
+
+    .channel-item:hover { background: var(--surface2); }
+
+    .channel-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    /* ── CENTER PANEL — Feed ── */
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .feed-header-left {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+    }
+
+    .ws-status {
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ws-status.ok { color: var(--green); }
+    .ws-status.no { color: var(--red); }
+
+    #feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+
+    #feed::-webkit-scrollbar { width: 3px; }
+    #feed::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .ev {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 20px;
+      border-bottom: 1px solid rgba(26,40,64,.6);
+      animation: fadeIn .2s ease;
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
+
+    .ev:hover { background: rgba(11,17,32,.6); }
+
+    .ev-time {
+      font-size: 10px;
+      font-family: 'Consolas', monospace;
+      color: var(--muted);
+      min-width: 54px;
+      margin-top: 2px;
+    }
+
+    .ev-type {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      min-width: 76px;
+      text-align: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+      letter-spacing: .03em;
+    }
+
+    .ev-msg { font-size: 12px; line-height: 1.5; color: var(--text); word-break: break-word; }
+
+    .t-message      { background: rgba(59,130,246,.15);  color: #60a5fa; }
+    .t-reply        { background: rgba(34,197,94,.15);   color: #4ade80; }
+    .t-agent        { background: rgba(168,85,247,.15);  color: #c084fc; }
+    .t-orchestrator { background: rgba(249,115,22,.15);  color: #fb923c; }
+    .t-reel         { background: rgba(245,158,11,.15);  color: #fbbf24; }
+    .t-youtube      { background: rgba(239,68,68,.15);   color: #f87171; }
+    .t-error        { background: rgba(239,68,68,.15);   color: #f87171; }
+    .t-system       { background: rgba(6,182,212,.12);   color: #22d3ee; }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+
+    .tab:hover { color: var(--text); }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .tab-content.active { display: flex; }
+
+    .scroll-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+    .scroll-list::-webkit-scrollbar { width: 3px; }
+    .scroll-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    /* Groups */
+    .group-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(26,40,64,.6);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .group-item:hover { background: var(--surface2); }
+
+    .group-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--surface3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .group-name { font-weight: 600; }
+    .group-id { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .group-status { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+    /* Content */
+    .content-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(26,40,64,.6);
+      cursor: pointer;
+    }
+
+    .content-item:hover { background: var(--surface2); }
+
+    .content-title {
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: capitalize;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .content-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .content-date { font-size: 10px; color: var(--muted); }
+
+    .ctag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+
+    .ctag-v { background: rgba(239,68,68,.15); color: #f87171; }
+    .ctag-s { background: rgba(34,197,94,.15); color: #4ade80; }
+
+    .content-preview {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 5px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .empty-state {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .empty-state .empty-icon { font-size: 24px; margin-bottom: 8px; opacity: .5; }
+
+    /* ── SEND TO GROUP QUICK ACTION ── */
+    .quick-send {
+      border-top: 1px solid var(--border);
+      padding: 10px 12px;
+      flex-shrink: 0;
+    }
+
+    .quick-send-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .quick-send-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .quick-send-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .quick-send-row input:focus { border-color: var(--accent); }
+    .quick-send-row input::placeholder { color: var(--muted); }
+
+    .send-btn {
+      background: var(--surface3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background .15s;
+    }
+
+    .send-btn:hover { background: var(--accent); border-color: var(--accent); }
   </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <h1>🧠 Mission Control</h1>
-  <span id="bot-badge" class="badge badge-green"><span class="dot"></span>Connecting…</span>
-  <span id="uptime-badge" class="badge badge-muted">—</span>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    Orchestrator
+  </div>
+  <div class="header-sep"></div>
+  <div class="status-pill" id="bot-status">
+    <div class="dot"></div>
+    Connecting…
+  </div>
+  <div class="header-sep"></div>
+  <div class="twin-badge" id="bot-twin">
+    🤖 Bot: —
+  </div>
+  <div class="header-right">
+    <div class="uptime-label" id="uptime-label">↑ —</div>
+  </div>
 </div>
 
-<div class="obar">
-  <input id="task" type="text" placeholder="Give the orchestrator a task — e.g. Research top AI tools and write a LinkedIn post about it" />
-  <button class="btn" id="run-btn" onclick="runTask()">▶ Run Task</button>
+<!-- COMMAND BAR -->
+<div class="cmdbar">
+  <div class="cmdbar-inner">
+    <input id="task-input" type="text"
+      placeholder="Give the orchestrator a task — e.g. Research top AI tools and write a LinkedIn post, then send it to my group" />
+    <button class="run-btn" id="run-btn" onclick="runTask()">
+      ▶ Run Task
+    </button>
+  </div>
 </div>
 
+<!-- STATS -->
 <div class="stats">
-  <div class="sc"><div class="sc-label">Bot</div><div class="sc-val" id="s-bot" style="color:var(--green)">●</div></div>
-  <div class="sc"><div class="sc-label">Agents</div><div class="sc-val">3</div></div>
-  <div class="sc"><div class="sc-label">Groups</div><div class="sc-val" id="s-groups">—</div></div>
-  <div class="sc"><div class="sc-label">Reels</div><div class="sc-val" id="s-reels">—</div></div>
-  <div class="sc"><div class="sc-label">Uptime</div><div class="sc-val" id="s-uptime" style="font-size:14px">—</div></div>
+  <div class="stat">
+    <div class="stat-icon">🤖</div>
+    <div class="stat-body">
+      <div class="stat-val" id="s-bot-val" style="color:var(--green)">●</div>
+      <div class="stat-label">Bot</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">⚡</div>
+    <div class="stat-body">
+      <div class="stat-val">4</div>
+      <div class="stat-label">Agents</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">👥</div>
+    <div class="stat-body">
+      <div class="stat-val" id="s-groups">—</div>
+      <div class="stat-label">Groups</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">🎬</div>
+    <div class="stat-body">
+      <div class="stat-val" id="s-reels">—</div>
+      <div class="stat-label">Reels</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">🕐</div>
+    <div class="stat-body">
+      <div class="stat-val" id="s-uptime" style="font-size:13px">—</div>
+      <div class="stat-label">Uptime</div>
+    </div>
+  </div>
 </div>
 
+<!-- MAIN -->
 <div class="main">
 
-  <!-- Live Feed -->
-  <div class="feed-panel">
-    <div class="phead">
-      Live Feed
-      <span id="ws-s" class="ws-no">● disconnected</span>
+  <!-- LEFT — Agent Roster -->
+  <div class="left-panel">
+    <div class="panel-title">Agent Roster</div>
+    <div class="agent-list">
+      <div class="agent-card" id="a-researcher">
+        <div class="agent-header">
+          <div class="agent-icon" style="background:rgba(59,130,246,.15)">🔍</div>
+          <div class="agent-name">Researcher</div>
+          <div class="agent-status" id="st-researcher">Ready</div>
+        </div>
+        <div class="agent-desc">Fetches URLs, gathers facts, saves findings to shared workspace</div>
+      </div>
+      <div class="agent-card" id="a-writer">
+        <div class="agent-header">
+          <div class="agent-icon" style="background:rgba(168,85,247,.15)">✍️</div>
+          <div class="agent-name">Writer</div>
+          <div class="agent-status" id="st-writer">Ready</div>
+        </div>
+        <div class="agent-desc">Reads research, writes polished posts, scripts, and articles</div>
+      </div>
+      <div class="agent-card" id="a-coder">
+        <div class="agent-header">
+          <div class="agent-icon" style="background:rgba(245,158,11,.15)">⚙️</div>
+          <div class="agent-name">Coder</div>
+          <div class="agent-status" id="st-coder">Ready</div>
+        </div>
+        <div class="agent-desc">Runs JavaScript to calculate, transform, or process data</div>
+      </div>
+      <div class="agent-card" id="a-communicator">
+        <div class="agent-header">
+          <div class="agent-icon" style="background:rgba(6,182,212,.15)">📡</div>
+          <div class="agent-name">Communicator</div>
+          <div class="agent-status" id="st-communicator">Ready</div>
+        </div>
+        <div class="agent-desc">Sends text and voice messages to Telegram groups</div>
+      </div>
+    </div>
+    <div class="left-divider"></div>
+    <div class="channel-section">
+      <div class="panel-title" style="padding:4px 8px 8px">Capabilities</div>
+      <div class="channel-item"><span class="channel-dot"></span> Chat (web + bot)</div>
+      <div class="channel-item"><span class="channel-dot"></span> Reel Factory</div>
+      <div class="channel-item"><span class="channel-dot"></span> YouTube Upload</div>
+      <div class="channel-item"><span class="channel-dot"></span> Group Messaging</div>
+      <div class="channel-item"><span class="channel-dot"></span> Voice Messages</div>
+    </div>
+  </div>
+
+  <!-- CENTER — Live Feed -->
+  <div class="center-panel">
+    <div class="feed-header">
+      <div class="feed-header-left">Live Activity</div>
+      <div class="ws-status no" id="ws-s">
+        <span>●</span> Disconnected
+      </div>
     </div>
     <div id="feed"></div>
   </div>
 
-  <!-- Right panel -->
-  <div class="right">
-
-    <div class="rsec" style="max-height:55%">
-      <div class="phead">Content Library</div>
-      <div class="clist" id="clist"><div class="empty">Loading…</div></div>
+  <!-- RIGHT — Groups + Content -->
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('groups', this)">👥 Groups</div>
+      <div class="tab" onclick="switchTab('content', this)">🎬 Content</div>
     </div>
 
-    <div class="rsec" style="flex:1">
-      <div class="phead">Telegram Groups</div>
-      <div class="glist" id="glist"><div class="empty">Loading…</div></div>
+    <div class="tab-content active" id="tab-groups">
+      <div class="scroll-list" id="glist">
+        <div class="empty-state"><div class="empty-icon">👥</div>Loading groups…</div>
+      </div>
+      <div class="quick-send">
+        <div class="quick-send-label">Quick Send</div>
+        <div class="quick-send-row">
+          <input id="qs-group" placeholder="Group name" style="max-width:90px" />
+          <input id="qs-msg" placeholder="Message…" />
+          <button class="send-btn" onclick="quickSend()">↑</button>
+        </div>
+      </div>
     </div>
 
+    <div class="tab-content" id="tab-content">
+      <div class="scroll-list" id="clist">
+        <div class="empty-state"><div class="empty-icon">🎬</div>Loading content…</div>
+      </div>
+    </div>
   </div>
+
 </div>
 
 <script>
+  // ── WebSocket ──────────────────────────────────────────────────────────────
+
   let ws;
 
-  // ── WebSocket ────────────────────────────────────────────────────────────────
-
   function connect() {
-    ws = new WebSocket(`ws://${location.host}`);
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}`);
+
     ws.onopen = () => {
-      document.getElementById('ws-s').className = 'ws-ok';
-      document.getElementById('ws-s').textContent = '● connected';
+      setWsStatus(true);
     };
-    ws.onmessage = e => addEvent(JSON.parse(e.data));
+
+    ws.onmessage = e => {
+      addEvent(JSON.parse(e.data));
+    };
+
     ws.onclose = () => {
-      document.getElementById('ws-s').className = 'ws-no';
-      document.getElementById('ws-s').textContent = '● disconnected';
+      setWsStatus(false);
       setTimeout(connect, 3000);
     };
   }
 
+  function setWsStatus(ok) {
+    const el = document.getElementById('ws-s');
+    el.className = 'ws-status ' + (ok ? 'ok' : 'no');
+    el.innerHTML = `<span>●</span> ${ok ? 'Connected' : 'Disconnected'}`;
+  }
+
+  // ── Feed ───────────────────────────────────────────────────────────────────
+
   function addEvent(ev) {
     const feed = document.getElementById('feed');
-    const atBottom = feed.scrollHeight - feed.scrollTop <= feed.clientHeight + 60;
+    const atBottom = feed.scrollHeight - feed.scrollTop <= feed.clientHeight + 80;
+
     const d = document.createElement('div');
     d.className = 'ev';
     const t = new Date(ev.ts);
-    const time = [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
-    d.innerHTML = `<span class="ev-time">${time}</span><span class="ev-badge t-${ev.type}">${ev.type.toUpperCase()}</span><span class="ev-msg">${esc(ev.message)}</span>`;
+    const time = [t.getHours(), t.getMinutes(), t.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+
+    // Highlight agent name in agent events
+    const type = ev.type || 'system';
+    d.innerHTML = `
+      <span class="ev-time">${time}</span>
+      <span class="ev-type t-${type}">${type.toUpperCase()}</span>
+      <span class="ev-msg">${esc(ev.message)}</span>
+    `;
+
+    // Mark agent as busy when delegating
+    if (type === 'agent') {
+      const match = ev.message.match(/→ (researcher|writer|coder|communicator)/i);
+      if (match) markAgent(match[1].toLowerCase(), true);
+    }
+
     feed.appendChild(d);
-    while (feed.children.length > 300) feed.removeChild(feed.firstChild);
+    while (feed.children.length > 400) feed.removeChild(feed.firstChild);
     if (atBottom) feed.scrollTop = feed.scrollHeight;
   }
 
   function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
-  // ── Orchestrate ──────────────────────────────────────────────────────────────
+  // ── Agent status ───────────────────────────────────────────────────────────
+
+  const agentTimers = {};
+
+  function markAgent(name, busy) {
+    const el = document.getElementById('st-' + name);
+    const card = document.getElementById('a-' + name);
+    if (!el) return;
+    if (busy) {
+      el.textContent = 'Busy';
+      el.className = 'agent-status busy';
+      card.classList.add('active');
+      clearTimeout(agentTimers[name]);
+      agentTimers[name] = setTimeout(() => markAgent(name, false), 15000);
+    } else {
+      el.textContent = 'Ready';
+      el.className = 'agent-status';
+      card.classList.remove('active');
+    }
+  }
+
+  // ── Run Task ───────────────────────────────────────────────────────────────
 
   async function runTask() {
-    const input = document.getElementById('task');
+    const input = document.getElementById('task-input');
     const btn   = document.getElementById('run-btn');
     const task  = input.value.trim();
     if (!task) return;
-    btn.disabled = true; btn.textContent = '⏳ Running…';
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Running…';
+
     try {
       await fetch('/api/orchestrate', {
         method: 'POST',
@@ -185,23 +856,72 @@
         body: JSON.stringify({ task })
       });
       input.value = '';
-    } catch(e) { console.error(e); }
-    btn.disabled = false; btn.textContent = '▶ Run Task';
+    } catch (e) {
+      console.error(e);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '▶ Run Task';
   }
 
-  document.getElementById('task').addEventListener('keydown', e => { if (e.key === 'Enter') runTask(); });
+  document.getElementById('task-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runTask();
+  });
 
-  // ── Data loading ─────────────────────────────────────────────────────────────
+  // ── Quick Send ─────────────────────────────────────────────────────────────
+
+  async function quickSend() {
+    const group = document.getElementById('qs-group').value.trim();
+    const msg   = document.getElementById('qs-msg').value.trim();
+    if (!group || !msg) return;
+    await runWithTask(`Send this message to the "${group}" group: ${msg}`);
+    document.getElementById('qs-msg').value = '';
+  }
+
+  document.getElementById('qs-msg').addEventListener('keydown', e => {
+    if (e.key === 'Enter') quickSend();
+  });
+
+  async function runWithTask(task) {
+    try {
+      await fetch('/api/orchestrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // ── Data Loading ───────────────────────────────────────────────────────────
 
   async function loadStatus() {
     try {
       const s = await (await fetch('/api/status')).json();
+      const online = s.bot === 'online';
+
       document.getElementById('s-groups').textContent  = s.groups;
-      document.getElementById('s-uptime').textContent  = fmt(s.uptime);
-      document.getElementById('s-bot').textContent     = s.bot === 'online' ? '●' : '○';
-      document.getElementById('s-bot').style.color     = s.bot === 'online' ? 'var(--green)' : 'var(--muted)';
-      document.getElementById('bot-badge').innerHTML   = `<span class="dot"></span>${s.bot.toUpperCase()}`;
-      document.getElementById('uptime-badge').textContent = '↑ ' + fmt(s.uptime);
+      document.getElementById('s-uptime').textContent  = fmtUptime(s.uptime);
+      document.getElementById('s-bot-val').textContent = online ? '●' : '○';
+      document.getElementById('s-bot-val').style.color = online ? 'var(--green)' : 'var(--muted)';
+      document.getElementById('uptime-label').textContent = '↑ ' + fmtUptime(s.uptime);
+
+      const pill = document.getElementById('bot-status');
+      pill.className = 'status-pill' + (online ? '' : ' offline');
+      pill.innerHTML = `<div class="dot"></div>${online ? 'Online' : 'Offline'}`;
+
+      const twin = document.getElementById('bot-twin');
+      twin.className = 'twin-badge' + (online ? ' bot-online' : '');
+      twin.innerHTML = `🤖 Bot: ${online ? 'Online' : 'Offline'}`;
+
     } catch {}
   }
 
@@ -210,13 +930,21 @@
       const items = await (await fetch('/api/content')).json();
       document.getElementById('s-reels').textContent = items.length;
       const el = document.getElementById('clist');
-      if (!items.length) { el.innerHTML = '<div class="empty">No content yet</div>'; return; }
-      el.innerHTML = items.slice(0, 30).map(i => `
-        <div class="cc">
-          <div class="cc-title">${esc(i.topic)}</div>
-          <div class="cc-meta">${i.date}${i.hasVideo ? ' <span class="tag tag-v">▶ Video</span>' : ''}${i.hasScript ? ' <span class="tag tag-s">✎ Script</span>' : ''}</div>
-          ${i.script ? `<div class="cc-script">${esc(i.script)}…</div>` : ''}
-        </div>`).join('');
+      if (!items.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎬</div>No content yet.<br>Use /content [topic] in Telegram or ask the orchestrator.</div>';
+        return;
+      }
+      el.innerHTML = items.slice(0, 40).map(i => `
+        <div class="content-item">
+          <div class="content-title">${esc(i.topic)}</div>
+          <div class="content-meta">
+            <span class="content-date">${i.date}</span>
+            ${i.hasVideo ? '<span class="ctag ctag-v">▶ Video</span>' : ''}
+            ${i.hasScript ? '<span class="ctag ctag-s">✎ Script</span>' : ''}
+          </div>
+          ${i.script ? `<div class="content-preview">${esc(i.script)}</div>` : ''}
+        </div>
+      `).join('');
     } catch {}
   }
 
@@ -226,23 +954,38 @@
       const entries = Object.entries(g);
       document.getElementById('s-groups').textContent = entries.length;
       const el = document.getElementById('glist');
-      if (!entries.length) { el.innerHTML = '<div class="empty">No groups yet</div>'; return; }
+      if (!entries.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div>No groups connected yet.<br>Add the bot to a Telegram group.</div>';
+        return;
+      }
       el.innerHTML = entries.map(([n, id]) => `
-        <div class="gi"><span class="gdot"></span><span>${esc(n)}</span><span class="gid">${id}</span></div>
+        <div class="group-item">
+          <div class="group-icon">👥</div>
+          <div>
+            <div class="group-name">${esc(n)}</div>
+            <div class="group-id">${id}</div>
+          </div>
+          <div class="group-status"></div>
+        </div>
       `).join('');
     } catch {}
   }
 
-  function fmt(s) {
-    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  function fmtUptime(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m`;
+    return `${Math.floor(s)}s`;
   }
 
-  // ── Init ─────────────────────────────────────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────────────────────────
 
   connect();
-  loadStatus(); loadContent(); loadGroups();
-  setInterval(loadStatus,  10000);
+  loadStatus();
+  loadContent();
+  loadGroups();
+  setInterval(loadStatus,  8000);
   setInterval(loadContent, 30000);
   setInterval(loadGroups,  30000);
 </script>
