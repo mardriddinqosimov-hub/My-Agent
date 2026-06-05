@@ -102,11 +102,12 @@ const groupTools = {
 // ── Bot command menu ───────────────────────────────────────────────────────────
 
 bot.setMyCommands([
-  { command: 'start',   description: 'Start the assistant' },
-  { command: 'clear',   description: 'Reset conversation history' },
-  { command: 'help',    description: 'Show available tools' },
-  { command: 'groups',  description: 'List connected Telegram groups' },
-  { command: 'content', description: 'Create a reel — /content [topic]' },
+  { command: 'start',    description: 'Start the assistant' },
+  { command: 'clear',    description: 'Reset conversation history' },
+  { command: 'help',     description: 'Show available tools' },
+  { command: 'groups',   description: 'List connected Telegram groups' },
+  { command: 'addgroup', description: 'Register a group — /addgroup [name] [id]' },
+  { command: 'content',  description: 'Create a reel — /content [topic]' },
 ]);
 
 // ── Keyboards ──────────────────────────────────────────────────────────────────
@@ -159,6 +160,18 @@ bot.onText(/\/start/,         (msg) => { if (msg.from?.id !== ALLOWED_ID) return
 bot.onText(/\/clear/,         (msg) => { if (msg.from?.id !== ALLOWED_ID) return; histories.delete(msg.chat.id); sendCleared(msg.chat.id); });
 bot.onText(/\/help/,          (msg) => { if (msg.from?.id !== ALLOWED_ID) return; sendHelp(msg.chat.id); });
 bot.onText(/\/groups/,        (msg) => { if (msg.from?.id !== ALLOWED_ID) return; sendGroupsList(msg.chat.id); });
+bot.onText(/\/addgroup (.+)/, (msg, match) => {
+  if (msg.from?.id !== ALLOWED_ID) return;
+  const parts = match[1].trim().split(/\s+/);
+  const rawId = parts[parts.length - 1];
+  const name  = parts.slice(0, -1).join(' ');
+  const id    = parseInt(rawId, 10);
+  if (!name || isNaN(id)) return bot.sendMessage(msg.chat.id, 'Usage: /addgroup [name] [id]\nExample: /addgroup Project 1.0 -5129310180');
+  const g = loadGroups();
+  g[name] = id;
+  saveGroups(g);
+  bot.sendMessage(msg.chat.id, `✅ Group *${name}* (${id}) registered.`, { parse_mode: 'Markdown' });
+});
 bot.onText(/\/content (.+)/,  (msg, match) => {
   if (msg.from?.id !== ALLOWED_ID) return;
   const full = match[1].trim();
