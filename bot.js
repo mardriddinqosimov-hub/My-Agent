@@ -33,6 +33,15 @@ function getHistory(chatId) {
 // states: 'awaiting_choice' | 'awaiting_images' | 'generating'
 const contentSessions = new Map();
 
+// Pending YouTube uploads: shortId -> { videoPath, title }
+const pendingUploads = new Map();
+let uploadIdCounter = 0;
+function storeUpload(videoPath, title) {
+  const id = (++uploadIdCounter).toString();
+  pendingUploads.set(id, { videoPath, title });
+  return id;
+}
+
 // chatIds that tapped 🧠 Multi-Agent and are waiting to provide a task
 const orchestratorPending = new Set();
 
@@ -251,10 +260,11 @@ async function runReel(chatId, session) {
     }
 
     // Ask about YouTube — don't auto-upload
+    const upId = storeUpload(result.video, session.topic);
     await bot.sendMessage(chatId, `✅ Reel ready! Upload to YouTube?`, {
       reply_markup: {
         inline_keyboard: [[
-          { text: '📺 Yes, upload to YouTube', callback_data: `yt_upload:${encodeURIComponent(result.video)}:${encodeURIComponent(session.topic)}` },
+          { text: '📺 Yes, upload to YouTube', callback_data: `yt_upload:${upId}` },
           { text: '✖ No thanks', callback_data: 'yt_skip' }
         ]]
       }
@@ -339,13 +349,14 @@ bot.on('callback_query', async (query) => {
   }
 
   if (query.data.startsWith('yt_upload:')) {
-    const parts = query.data.split(':');
-    const videoPath = decodeURIComponent(parts[1]);
-    const title     = decodeURIComponent(parts[2]);
+    const upId = query.data.split(':')[1];
+    const upload = pendingUploads.get(upId);
+    if (!upload) return bot.sendMessage(chatId, '⚠️ Upload session expired. Re-run /content.');
+    pendingUploads.delete(upId);
     await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {});
     const uploading = await bot.sendMessage(chatId, '📤 Uploading to YouTube…');
     try {
-      const { url } = await uploadToYouTube({ videoPath, title, privacyStatus: 'public' });
+      const { url } = await uploadToYouTube({ videoPath: upload.videoPath, title: upload.title, privacyStatus: 'public' });
       log('youtube', `Published: ${url}`);
       await bot.editMessageText(`📺 Published!\n${url}`, { chat_id: chatId, message_id: uploading.message_id });
     } catch (ytErr) {
