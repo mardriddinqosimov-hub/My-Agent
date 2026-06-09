@@ -73,7 +73,7 @@ bot.on('message', (msg) => {
 // ── Custom agent tools ─────────────────────────────────────────────────────────
 
 const groupTools = {
-  create_content: async ({ topic }) => `__CONTENT__:${topic}`,
+  create_content: async ({ topic }) => `__CONTENT_AI__:${topic}`,
 
   send_to_group: async ({ group, message }) => {
     const g = resolveGroup(group);
@@ -172,67 +172,56 @@ bot.onText(/\/addgroup (.+)/, (msg, match) => {
   saveGroups(g);
   bot.sendMessage(msg.chat.id, `✅ Group *${name}* (${id}) registered.`, { parse_mode: 'Markdown' });
 });
-bot.onText(/\/content (.+)/,  (msg, match) => {
+bot.onText(/\/content\s+photos\s+(.+)/i, (msg, match) => {
   if (msg.from?.id !== ALLOWED_ID) return;
   const full = match[1].trim();
-  // Extract "send to [group]" / "then send [to] [group]" from the instruction
   const sendMatch = full.match(/(?:then\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?(.+?)(?:\s+group)?$/i);
   const topic = full.replace(/[,.]?\s*(?:then\s+)?(?:and\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?.+$/i, '').trim();
   const sendToGroup = sendMatch ? sendMatch[1].trim() : null;
-  askImageChoice(msg.chat.id, topic || full, sendToGroup);
+  askForImages(msg.chat.id, topic || full, sendToGroup);
 });
-bot.onText(/^\/content$/,     (msg) => { if (msg.from?.id !== ALLOWED_ID) return; bot.sendMessage(msg.chat.id, 'Usage: /content [topic]'); });
-
-// ── Content Factory — step 1: ask image source ────────────────────────────────
-
-function askImageChoice(chatId, topic, sendToGroup = null) {
-  contentSessions.set(chatId, { topic, dir: outDir(topic), images: [], state: 'awaiting_choice', sendToGroup });
-  bot.sendMessage(chatId,
-    `🎬 *Reel topic:* _${topic}_\n\nBackground images:`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🤖 Generate with AI', callback_data: 'reel_ai' },
-          { text: '📸 Send my own photos', callback_data: 'reel_own' },
-        ]]
-      }
-    }
-  );
-}
+bot.onText(/\/content (.+)/,  (msg, match) => {
+  if (msg.from?.id !== ALLOWED_ID) return;
+  const full = match[1].trim();
+  if (/^photos\s/i.test(full)) return; // handled above
+  const sendMatch = full.match(/(?:then\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?(.+?)(?:\s+group)?$/i);
+  const topic = full.replace(/[,.]?\s*(?:then\s+)?(?:and\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?.+$/i, '').trim();
+  const sendToGroup = sendMatch ? sendMatch[1].trim() : null;
+  startWithAI(msg.chat.id, topic || full, sendToGroup);
+});
+bot.onText(/^\/content$/,     (msg) => { if (msg.from?.id !== ALLOWED_ID) return; bot.sendMessage(msg.chat.id, 'Usage:\n/content [topic] — AI images\n/content photos [topic] — use your own photos'); });
 
 // ── Content Factory — step 2: generate or collect images ─────────────────────
 
-async function startWithAI(chatId) {
-  const session = contentSessions.get(chatId);
-  if (!session) return;
-  session.state = 'generating';
+async function startWithAI(chatId, topic, sendToGroup = null) {
+  const dir = outDir(topic);
+  const session = { topic, dir, images: [], state: 'generating', sendToGroup };
+  contentSessions.set(chatId, session);
 
-  const statusMsg = await bot.sendMessage(chatId, '🤖 Generating AI images...');
+  const statusMsg = await bot.sendMessage(chatId, `🎬 *${topic}*\n\n🤖 Generating AI images...`, { parse_mode: 'Markdown' });
 
   try {
-    const images = await generateAIImages(session.topic, session.dir, 4, async (msg) => {
-      await bot.editMessageText(msg, { chat_id: chatId, message_id: statusMsg.message_id }).catch(() => {});
+    const images = await generateAIImages(topic, dir, 4, async (prog) => {
+      await bot.editMessageText(`🎬 *${topic}*\n\n${prog}`, { chat_id: chatId, message_id: statusMsg.message_id, parse_mode: 'Markdown' }).catch(() => {});
     });
     session.images = images;
 
-    // Preview the images
-    const media = images.map((p, i) => ({ type: 'photo', media: p, caption: i === 0 ? `🎨 AI images for: ${session.topic}` : '' }));
+    const media = images.map((p, i) => ({ type: 'photo', media: p, caption: i === 0 ? `🎨 AI images for: ${topic}` : '' }));
     await bot.sendMediaGroup(chatId, media);
 
     await runReel(chatId, session);
   } catch (err) {
+    contentSessions.delete(chatId);
     bot.sendMessage(chatId, `⚠️ ${err.message}`);
     console.error('[REEL AI]', err.message);
   }
 }
 
-function askForImages(chatId) {
-  const session = contentSessions.get(chatId);
-  if (!session) return;
-  session.state = 'awaiting_images';
+function askForImages(chatId, topic, sendToGroup = null) {
+  const dir = outDir(topic);
+  contentSessions.set(chatId, { topic, dir, images: [], state: 'awaiting_images', sendToGroup });
   bot.sendMessage(chatId,
-    `📸 Send your photos now (one by one or as an album).\nTap *Done* when finished.`,
+    `🎬 *${topic}*\n\n📸 Send your photos now (one by one or as an album).\nTap *Done* when finished.`,
     {
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: [[{ text: '✅ Done — create reel', callback_data: 'reel_done' }]] }
@@ -338,9 +327,17 @@ bot.on('callback_query', async (query) => {
   }
 
   // Content factory buttons
-  if (query.data === 'reel_ai') return startWithAI(chatId);
+  if (query.data === 'reel_ai') {
+    const s = contentSessions.get(chatId);
+    if (s) return startWithAI(chatId, s.topic, s.sendToGroup);
+    return;
+  }
 
-  if (query.data === 'reel_own') return askForImages(chatId);
+  if (query.data === 'reel_own') {
+    const s = contentSessions.get(chatId);
+    if (s) return askForImages(chatId, s.topic, s.sendToGroup);
+    return;
+  }
 
   if (query.data === 'reel_done') {
     const session = contentSessions.get(chatId);
@@ -429,8 +426,8 @@ bot.on('message', async (msg) => {
     clearInterval(typingInterval);
     log('reply', reply.slice(0, 80));
 
-    if (reply.startsWith('__CONTENT__:')) {
-      return askImageChoice(chatId, reply.replace('__CONTENT__:', '').trim());
+    if (reply.startsWith('__CONTENT_AI__:')) {
+      return startWithAI(chatId, reply.replace('__CONTENT_AI__:', '').trim());
     }
 
     for (const chunk of splitMessage(reply)) {
