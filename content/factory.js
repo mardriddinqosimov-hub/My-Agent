@@ -110,9 +110,34 @@ export async function generateSubtitles(audioPath, dir, onProgress) {
   return srtPath;
 }
 
-// ── Step 4: Generate AI images via DALL-E 3 ───────────────────────────────────
+// ── Step 4a: Fetch images from Pexels ─────────────────────────────────────────
 
-export async function generateAIImages(topic, dir, count = 4, onProgress) {
+async function fetchPexelsImages(topic, dir, count = 4, onProgress) {
+  onProgress?.(`🖼 Searching Pexels for "${topic}"...`);
+  const key = process.env.PEXELS_API_KEY;
+  const query = encodeURIComponent(topic);
+  const res = await fetch(`https://api.pexels.com/v1/search?query=${query}&per_page=${count + 4}&orientation=portrait`, {
+    headers: { Authorization: key }
+  });
+  if (!res.ok) throw new Error(`Pexels error: ${res.status}`);
+  const data = await res.json();
+  if (!data.photos?.length) throw new Error(`No Pexels results for "${topic}"`);
+
+  const photos = data.photos.slice(0, count);
+  const imagePaths = [];
+  for (let i = 0; i < photos.length; i++) {
+    const url = photos[i].src.large2x || photos[i].src.large;
+    const imgPath = path.join(dir, `bg_${i}.jpg`);
+    await downloadUrl(url, imgPath);
+    imagePaths.push(imgPath);
+    onProgress?.(`🖼 Downloaded ${i + 1}/${photos.length} images...`);
+  }
+  return imagePaths;
+}
+
+// ── Step 4b: Generate AI images via DALL-E ────────────────────────────────────
+
+async function generateDalleImages(topic, dir, count = 4, onProgress) {
   onProgress?.(`🎨 Generating ${count} AI images...`);
   const prompts = [
     `Cinematic vertical portrait, social media reel background for "${topic}". Dramatic lighting, modern. No text.`,
@@ -126,7 +151,6 @@ export async function generateAIImages(topic, dir, count = 4, onProgress) {
     try {
       res = await openai.images.generate({ model: 'dall-e-3', prompt, n: 1, size: '1024x1792', quality: 'standard' });
     } catch {
-      // fall back to dall-e-2 if dall-e-3 not available on this account
       res = await openai.images.generate({ model: 'dall-e-2', prompt, n: 1, size: '1024x1024' });
     }
     const imgPath = path.join(dir, `bg_${i}.png`);
@@ -134,6 +158,19 @@ export async function generateAIImages(topic, dir, count = 4, onProgress) {
     imagePaths[i] = imgPath;
   }));
   return imagePaths;
+}
+
+// ── Step 4: Generate images — Pexels first, DALL-E fallback ──────────────────
+
+export async function generateAIImages(topic, dir, count = 4, onProgress) {
+  if (process.env.PEXELS_API_KEY) {
+    try {
+      return await fetchPexelsImages(topic, dir, count, onProgress);
+    } catch (err) {
+      onProgress?.(`⚠️ Pexels failed (${err.message}), trying DALL-E...`);
+    }
+  }
+  return await generateDalleImages(topic, dir, count, onProgress);
 }
 
 // ── Step 5: Render 9:16 video (two-pass: slideshow + subtitles) ───────────────
