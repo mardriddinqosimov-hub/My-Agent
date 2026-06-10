@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import OpenAI from 'openai';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -19,7 +18,8 @@ export async function runAgent({ systemPrompt, toolDefs = [], toolHandlers = {},
     ...callOpts
   });
 
-  while (response.choices[0].finish_reason === 'tool_calls') {
+  let iterations = 0;
+  while (response.choices[0].finish_reason === 'tool_calls' && ++iterations <= 10) {
     const msg = response.choices[0].message;
     history.push(msg);
     const results = [];

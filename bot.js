@@ -39,6 +39,7 @@ let uploadIdCounter = 0;
 function storeUpload(videoPath, title) {
   const id = (++uploadIdCounter).toString();
   pendingUploads.set(id, { videoPath, title });
+  setTimeout(() => pendingUploads.delete(id), 30 * 60 * 1000); // expire after 30 min
   return id;
 }
 
@@ -172,24 +173,23 @@ bot.onText(/\/addgroup (.+)/, (msg, match) => {
   saveGroups(g);
   bot.sendMessage(msg.chat.id, `✅ Group *${name}* (${id}) registered.`, { parse_mode: 'Markdown' });
 });
-bot.onText(/\/content\s+photos\s+(.+)/i, (msg, match) => {
+bot.onText(/\/content(?:\s+(.+))?$/, (msg, match) => {
   if (msg.from?.id !== ALLOWED_ID) return;
-  const full = match[1].trim();
-  const sendMatch = full.match(/(?:then\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?(.+?)(?:\s+group)?$/i);
-  const topic = full.replace(/[,.]?\s*(?:then\s+)?(?:and\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?.+$/i, '').trim();
+  const chatId = msg.chat.id;
+  const raw = match[1]?.trim() || '';
+
+  if (!raw) return bot.sendMessage(chatId, 'Usage:\n/content [topic] — AI images\n/content photos [topic] — your own photos');
+
+  const usePhotos = /^photos\s+/i.test(raw);
+  const rest = usePhotos ? raw.replace(/^photos\s+/i, '').trim() : raw;
+
+  const sendMatch = rest.match(/(?:then\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?(.+?)(?:\s+group)?$/i);
+  const topic     = rest.replace(/[,.]?\s*(?:then\s+)?(?:and\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?.+$/i, '').trim() || rest;
   const sendToGroup = sendMatch ? sendMatch[1].trim() : null;
-  askForImages(msg.chat.id, topic || full, sendToGroup);
+
+  if (usePhotos) askForImages(chatId, topic, sendToGroup);
+  else           startWithAI(chatId, topic, sendToGroup);
 });
-bot.onText(/\/content (.+)/,  (msg, match) => {
-  if (msg.from?.id !== ALLOWED_ID) return;
-  const full = match[1].trim();
-  if (/^photos\s/i.test(full)) return; // handled above
-  const sendMatch = full.match(/(?:then\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?(.+?)(?:\s+group)?$/i);
-  const topic = full.replace(/[,.]?\s*(?:then\s+)?(?:and\s+)?send\s+(?:the\s+)?(?:video|vedio|reel)?\s*(?:to\s+)?(?:the\s+)?.+$/i, '').trim();
-  const sendToGroup = sendMatch ? sendMatch[1].trim() : null;
-  startWithAI(msg.chat.id, topic || full, sendToGroup);
-});
-bot.onText(/^\/content$/,     (msg) => { if (msg.from?.id !== ALLOWED_ID) return; bot.sendMessage(msg.chat.id, 'Usage:\n/content [topic] — AI images\n/content photos [topic] — use your own photos'); });
 
 // ── Content Factory — step 2: generate or collect images ─────────────────────
 

@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { google } from 'googleapis';
 import fs from 'fs';
 

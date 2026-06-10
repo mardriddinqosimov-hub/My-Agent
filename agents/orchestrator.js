@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import OpenAI from 'openai';
 import { runAgent } from './runner.js';
 import { AGENTS, ensureShared } from './registry.js';
@@ -59,7 +58,8 @@ export async function runOrchestrator(task, onProgress) {
     tool_choice: 'auto'
   });
 
-  while (response.choices[0].finish_reason === 'tool_calls') {
+  let iterations = 0;
+  while (response.choices[0].finish_reason === 'tool_calls' && ++iterations <= 15) {
     const msg = response.choices[0].message;
     history.push(msg);
     const results = [];

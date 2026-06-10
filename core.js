@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import OpenAI from 'openai';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -24,8 +23,11 @@ export function loadSystemPrompt() {
  * @param {Array}  history     - mutable array, modified in place
  * @param {Function} onToolCall - optional callback(toolName) called before each tool run
  */
+const MAX_HISTORY = 40; // keep last 20 turns
+
 export async function chat(userMessage, history, onToolCall = null, customTools = {}) {
   history.push({ role: 'user', content: userMessage });
+  if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
 
   let response = await client.chat.completions.create({
     model: MODEL,
@@ -34,7 +36,8 @@ export async function chat(userMessage, history, onToolCall = null, customTools 
     tool_choice: 'auto'
   });
 
-  while (response.choices[0].finish_reason === 'tool_calls') {
+  let iterations = 0;
+  while (response.choices[0].finish_reason === 'tool_calls' && ++iterations <= 10) {
     const assistantMsg = response.choices[0].message;
     history.push(assistantMsg);
 

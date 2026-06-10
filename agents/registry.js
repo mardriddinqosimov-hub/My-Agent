@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { execSync } from 'child_process';
 import fetch from 'node-fetch';
 import { getBot, getOpenAI } from '../telegram/client.js';
@@ -136,20 +137,24 @@ const HANDLERS = {
   },
 
   run_js: ({ code }) => {
+    const tmp = path.join(os.tmpdir(), `run_${Date.now()}.js`);
     try {
-      return execSync(`node -e "${code.replace(/"/g, '\\"')}"`, { timeout: 10000, encoding: 'utf-8' }) || '(no output)';
+      fs.writeFileSync(tmp, code, 'utf-8');
+      return execSync(`node "${tmp}"`, { timeout: 10000, encoding: 'utf-8' }) || '(no output)';
     } catch (e) {
       return `Error: ${e.stderr || e.message}`;
+    } finally {
+      fs.unlink(tmp, () => {});
     }
   },
 
   send_to_group: async ({ group, message }) => {
     const bot = getBot();
     if (!bot) return 'Telegram bot not available';
-    const gFile = path.join(process.cwd(), 'workspace', 'groups.json');
-    const groups = JSON.parse(fs.readFileSync(gFile, 'utf-8'));
+    let groups = {};
+    try { groups = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'workspace', 'groups.json'), 'utf-8')); } catch {}
     const match = Object.entries(groups).find(([k]) => k.toLowerCase().includes(group.toLowerCase()));
-    if (!match) return `Group not found. Known: ${Object.keys(groups).join(', ')}`;
+    if (!match) return `Group not found. Known: ${Object.keys(groups).join(', ') || 'none'}`;
     await bot.sendMessage(match[1], message);
     return `Message sent to "${match[0]}"`;
   },
@@ -158,10 +163,10 @@ const HANDLERS = {
     const bot    = getBot();
     const openai = getOpenAI();
     if (!bot || !openai) return 'Bot or OpenAI not available';
-    const gFile = path.join(process.cwd(), 'workspace', 'groups.json');
-    const groups = JSON.parse(fs.readFileSync(gFile, 'utf-8'));
+    let groups = {};
+    try { groups = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'workspace', 'groups.json'), 'utf-8')); } catch {}
     const match = Object.entries(groups).find(([k]) => k.toLowerCase().includes(group.toLowerCase()));
-    if (!match) return `Group not found. Known: ${Object.keys(groups).join(', ')}`;
+    if (!match) return `Group not found. Known: ${Object.keys(groups).join(', ') || 'none'}`;
     const tmp = path.join(process.cwd(), 'workspace', `orch_tts_${Date.now()}.mp3`);
     const mp3 = await openai.audio.speech.create({ model: 'tts-1', voice, input: text });
     fs.writeFileSync(tmp, Buffer.from(await mp3.arrayBuffer()));

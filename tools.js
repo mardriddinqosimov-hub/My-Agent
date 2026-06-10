@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { execSync } from 'child_process';
 import fetch from 'node-fetch';
 
@@ -196,15 +197,15 @@ export async function runTool(name, args) {
       }
 
       case 'run_js': {
+        const tmp = path.join(os.tmpdir(), `run_${Date.now()}.js`);
         try {
-          const result = execSync(`node -e "${args.code.replace(/"/g, '\\"')}"`, {
-            timeout: 10000,
-            encoding: 'utf-8',
-            windowsHide: true
-          });
+          fs.writeFileSync(tmp, args.code, 'utf-8');
+          const result = execSync(`node "${tmp}"`, { timeout: 10000, encoding: 'utf-8', windowsHide: true });
           return result || '(no output)';
         } catch (e) {
           return `Error: ${e.stderr || e.message}`;
+        } finally {
+          fs.unlink(tmp, () => {});
         }
       }
 
