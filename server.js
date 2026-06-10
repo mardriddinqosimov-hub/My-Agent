@@ -14,8 +14,17 @@ const PORT = process.env.PORT || process.env.DASHBOARD_PORT || 4000;
 const app = express();
 app.use(express.json());
 
-// Serve dashboard
+// Serve dashboard (public — key prompt is in the HTML)
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'dashboard', 'index.html')));
+
+// Auth middleware — all /api routes require secret key
+app.use('/api', (req, res, next) => {
+  const key = process.env.SECRET_KEY;
+  if (!key) return next();
+  const provided = req.headers['x-secret-key'] || req.query.key;
+  if (provided !== key) return res.status(401).json({ error: 'Unauthorized' });
+  next();
+});
 
 // ── REST API ───────────────────────────────────────────────────────────────────
 
@@ -70,8 +79,12 @@ app.post('/api/orchestrate', async (req, res) => {
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
-  // Send history to new client
+wss.on('connection', (ws, req) => {
+  const key = process.env.SECRET_KEY;
+  if (key) {
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    if (params.get('key') !== key) { ws.close(4001, 'Unauthorized'); return; }
+  }
   for (const e of getRecent()) {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(e));
   }

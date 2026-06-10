@@ -387,6 +387,17 @@
 </div>
 
 <script>
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  let _sk = localStorage.getItem('_sk') || '';
+  if (!_sk) {
+    _sk = prompt('Enter secret key:') || '';
+    if (_sk) localStorage.setItem('_sk', _sk);
+  }
+
+  function api(url, opts = {}) {
+    return fetch(url, { ...opts, headers: { 'x-secret-key': _sk, ...(opts.headers || {}) } });
+  }
+
   // ── Cached data ────────────────────────────────────────────────────────────
   let _status  = null;
   let _groups  = {};
@@ -531,7 +542,7 @@
 
   function connect() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}`);
+    ws = new WebSocket(`${proto}//${location.host}?key=${encodeURIComponent(_sk)}`);
     ws.onopen  = () => setWsStatus(true);
     ws.onmessage = e => addEvent(JSON.parse(e.data));
     ws.onclose = () => { setWsStatus(false); setTimeout(connect, 3000); };
@@ -588,7 +599,7 @@
     if (!task) return;
     btn.disabled = true; btn.textContent = '⏳ Running…';
     try {
-      await fetch('/api/orchestrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task }) });
+      await api('/api/orchestrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task }) });
       input.value = '';
     } catch (e) { console.error(e); }
     btn.disabled = false; btn.innerHTML = '▶ Run Task';
@@ -601,7 +612,7 @@
     const msg   = document.getElementById('qs-msg').value.trim();
     if (!group || !msg) return;
     try {
-      await fetch('/api/orchestrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task: `Send this message to the "${group}" group: ${msg}` }) });
+      await api('/api/orchestrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task: `Send this message to the "${group}" group: ${msg}` }) });
       document.getElementById('qs-msg').value = '';
     } catch (e) { console.error(e); }
   }
@@ -618,7 +629,7 @@
   // ── Data Loading ───────────────────────────────────────────────────────────
   async function loadStatus() {
     try {
-      _status = await (await fetch('/api/status')).json();
+      _status = await (await api('/api/status')).json();
       const online = _status.bot === 'online';
       document.getElementById('s-groups').textContent = _status.groups;
       document.getElementById('s-uptime').textContent = fmtUptime(_status.uptime);
@@ -637,7 +648,7 @@
 
   async function loadContent() {
     try {
-      _content = await (await fetch('/api/content')).json();
+      _content = await (await api('/api/content')).json();
       document.getElementById('s-reels').textContent = _content.length;
       const el = document.getElementById('clist');
       if (!_content.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎬</div>No content yet.</div>'; return; }
@@ -657,7 +668,7 @@
 
   async function loadGroups() {
     try {
-      _groups = await (await fetch('/api/groups')).json();
+      _groups = await (await api('/api/groups')).json();
       const entries = Object.entries(_groups);
       document.getElementById('s-groups').textContent = entries.length;
       const el = document.getElementById('glist');
