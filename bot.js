@@ -165,10 +165,10 @@ bot.onText(/\/addgroup (.+)/, (msg, match) => {
   saveGroups(g);
   bot.sendMessage(msg.chat.id, `✅ Group *${name}* (${id}) registered.`, { parse_mode: 'Markdown' });
 });
-bot.onText(/\/content(?:\s+(.+))?$/, (msg, match) => {
+bot.onText(/\/content(?:\s+([\s\S]+))?/, (msg, match) => {
   if (msg.from?.id !== ALLOWED_ID) return;
   const chatId = msg.chat.id;
-  const raw = match[1]?.trim() || '';
+  const raw = (match[1]?.split('\n')[0] || '').trim();
 
   if (!raw) return bot.sendMessage(chatId, 'Usage:\n/content [topic] — AI images\n/content photos [topic] — your own photos');
 
