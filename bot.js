@@ -113,15 +113,7 @@ bot.setMyCommands([
 
 // ── Keyboards ──────────────────────────────────────────────────────────────────
 
-const replyKeyboard = {
-  keyboard: [
-    [{ text: '🗑 Clear history' }, { text: '🛠 Tools' }],
-    [{ text: '❓ Who are you?' },  { text: '👥 My groups' }],
-    [{ text: '🎬 Create Reel' }, { text: '🧠 Multi-Agent' }],
-  ],
-  resize_keyboard: true,
-  persistent: true,
-};
+const replyKeyboard = { remove_keyboard: true };
 
 // ── UI helpers ─────────────────────────────────────────────────────────────────
 
