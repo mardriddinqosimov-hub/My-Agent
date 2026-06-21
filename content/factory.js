@@ -226,7 +226,7 @@ export async function renderVideo(imagePaths, audioPath, srtPath, dir, onProgres
   // ── Pass 2: burn subtitles ─────────────────────────────────────────────────
 
   const srtEsc = IS_WIN ? fwd(srtPath).replace(/^([A-Za-z]):/, '$1\\:') : fwd(srtPath);
-  const style = 'FontName=Arial,FontSize=11,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=1,Shadow=0,Bold=0,Alignment=2,MarginL=50,MarginR=50,MarginV=40';
+  const style = 'FontName=Times New Roman,FontSize=12,Italic=1,PrimaryColour=&H00EEE8D5,OutlineColour=&H00000000,Outline=1,Shadow=1,Bold=0,Alignment=2,MarginL=50,MarginR=50,MarginV=40';
 
   const cmd2 = [
     `"${FFMPEG}"`,
