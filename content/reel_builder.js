@@ -54,10 +54,9 @@ async function generateClip(prompt, clipSeconds, dir, index, onProgress) {
   const result = await fal.subscribe('fal-ai/flux/schnell', {
     input: {
       prompt,
-      image_size: 'portrait_9_16',
-      num_inference_steps: 8,
-      num_images: 1,
-      enable_safety_checker: false
+      image_size: { width: 576, height: 1024 },
+      num_inference_steps: 4,
+      num_images: 1
     },
     logs: false,
     onQueueUpdate: () => {}
