@@ -53,12 +53,10 @@ async function generateClip(prompt, clipSeconds, dir, index, onProgress) {
   onProgress?.(`🎬 Scene ${index + 1}: generating AI video...`);
   fal.config({ credentials: process.env.FAL_API_KEY });
 
-  const result = await fal.subscribe('fal-ai/kling-video/v1.6/standard/text-to-video', {
+  const result = await fal.subscribe('fal-ai/minimax/video-01', {
     input: {
       prompt,
-      negative_prompt: 'text, watermark, logo, blur, low quality, cartoon',
-      duration: clipSeconds >= 8 ? '10' : '5',
-      aspect_ratio: '9:16'
+      prompt_optimizer: true
     },
     logs: false,
     onQueueUpdate: () => {}
