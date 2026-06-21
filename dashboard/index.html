@@ -83,7 +83,7 @@
     .stat-val { font-size: 17px; font-weight: 700; color: var(--text); }
     .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
 
-    /* ── DETAIL PANEL (slides down below stats) ── */
+    /* ── DETAIL PANEL ── */
     .detail-panel {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -92,7 +92,7 @@
       max-height: 0;
       transition: max-height .3s ease, padding .3s ease;
     }
-    .detail-panel.open { max-height: 320px; }
+    .detail-panel.open { max-height: 380px; }
     .detail-inner { padding: 16px 24px; }
     .detail-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
     .detail-close { cursor: pointer; font-size: 16px; color: var(--muted); line-height: 1; transition: color .15s; }
@@ -100,22 +100,23 @@
     .detail-grid { display: grid; gap: 8px; }
     .detail-grid.cols-2 { grid-template-columns: 1fr 1fr; }
     .detail-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .detail-grid.cols-8 { grid-template-columns: repeat(8, 1fr); }
 
     /* Agent cards in panel */
     .agent-panel-card {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 12px 14px;
+      padding: 12px 10px;
+      text-align: center;
     }
-    .apc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .apc-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-    .apc-name { font-weight: 700; font-size: 13px; }
-    .apc-badge { margin-left: auto; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(34,197,94,.12); color: var(--green); }
+    .apc-avatar { display: flex; justify-content: center; margin-bottom: 8px; }
+    .apc-name { font-weight: 700; font-size: 11px; margin-bottom: 4px; }
+    .apc-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(34,197,94,.12); color: var(--green); margin-bottom: 6px; }
     .apc-badge.busy { background: rgba(245,158,11,.12); color: var(--yellow); }
-    .apc-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
-    .apc-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-    .apc-tool { font-size: 9px; padding: 2px 7px; border-radius: 4px; background: var(--surface3); color: var(--dim); border: 1px solid var(--border); }
+    .apc-desc { font-size: 9px; color: var(--muted); line-height: 1.4; }
+    .apc-tools { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; justify-content: center; }
+    .apc-tool { font-size: 8px; padding: 1px 5px; border-radius: 3px; background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
 
     /* Bot info panel */
     .bot-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -141,7 +142,6 @@
     .rtag-v { background: rgba(239,68,68,.15); color: #f87171; }
     .rtag-s { background: rgba(34,197,94,.15); color: #4ade80; }
     .rpc-preview { font-size: 10px; color: var(--muted); margin-top: 5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
     .panel-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 20px; }
 
     /* ── MAIN LAYOUT ── */
@@ -151,11 +151,13 @@
     .left-panel { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
     .panel-title { padding: 10px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .agent-list { padding: 8px; overflow-y: auto; flex: 1; }
-    .agent-card { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 6px; background: var(--surface2); transition: border-color .15s, background .15s; }
+    .agent-list::-webkit-scrollbar { width: 3px; }
+    .agent-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    .agent-card { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 6px; background: var(--surface2); transition: border-color .2s, background .2s, box-shadow .2s; }
     .agent-card:hover { border-color: var(--border2); background: var(--surface3); }
     .agent-card.active { border-color: rgba(79,142,247,.4); background: rgba(79,142,247,.06); }
     .agent-header { display: flex; align-items: center; gap: 8px; }
-    .agent-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .agent-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent; }
     .agent-name { font-weight: 600; font-size: 12px; }
     .agent-status { margin-left: auto; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; background: rgba(34,197,94,.1); color: var(--green); }
     .agent-status.busy { background: rgba(245,158,11,.12); color: var(--yellow); }
@@ -165,6 +167,22 @@
     .channel-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; font-size: 11px; }
     .channel-item:hover { background: var(--surface2); }
     .channel-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    /* ── HUMANOID 3D ── */
+    @keyframes humanoidIdle {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-1px); }
+    }
+    @keyframes glowPulse {
+      0%, 100% { opacity: .85; }
+      50%       { opacity: 1; }
+    }
+    .humanoid-wrap {
+      animation: humanoidIdle 3s ease-in-out infinite, glowPulse 3s ease-in-out infinite;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .agent-card:hover .humanoid-wrap  { animation-duration: 1.2s, 1.2s; }
+    .agent-card.active .humanoid-wrap { animation-duration: .8s, .8s; }
 
     /* ── CENTER ── */
     .center-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
@@ -254,7 +272,7 @@
   </div>
 </div>
 
-<!-- STATS — each card is clickable -->
+<!-- STATS -->
 <div class="stats">
   <div class="stat" id="sc-bot"    onclick="togglePanel('bot')">
     <div class="stat-icon">🤖</div>
@@ -266,7 +284,7 @@
   <div class="stat" id="sc-agents" onclick="togglePanel('agents')">
     <div class="stat-icon">⚡</div>
     <div>
-      <div class="stat-val">4</div>
+      <div class="stat-val">8</div>
       <div class="stat-label">Agents</div>
     </div>
   </div>
@@ -304,40 +322,7 @@
   <!-- LEFT -->
   <div class="left-panel">
     <div class="panel-title">Agent Roster</div>
-    <div class="agent-list">
-      <div class="agent-card" id="a-researcher">
-        <div class="agent-header">
-          <div class="agent-icon" style="background:rgba(59,130,246,.15)">🔍</div>
-          <div class="agent-name">Researcher</div>
-          <div class="agent-status" id="st-researcher">Ready</div>
-        </div>
-        <div class="agent-desc">Fetches URLs, gathers facts, saves findings to shared workspace</div>
-      </div>
-      <div class="agent-card" id="a-writer">
-        <div class="agent-header">
-          <div class="agent-icon" style="background:rgba(168,85,247,.15)">✍️</div>
-          <div class="agent-name">Writer</div>
-          <div class="agent-status" id="st-writer">Ready</div>
-        </div>
-        <div class="agent-desc">Reads research, writes polished posts, scripts, and articles</div>
-      </div>
-      <div class="agent-card" id="a-coder">
-        <div class="agent-header">
-          <div class="agent-icon" style="background:rgba(245,158,11,.15)">⚙️</div>
-          <div class="agent-name">Coder</div>
-          <div class="agent-status" id="st-coder">Ready</div>
-        </div>
-        <div class="agent-desc">Runs JavaScript to calculate, transform, or process data</div>
-      </div>
-      <div class="agent-card" id="a-communicator">
-        <div class="agent-header">
-          <div class="agent-icon" style="background:rgba(6,182,212,.15)">📡</div>
-          <div class="agent-name">Communicator</div>
-          <div class="agent-status" id="st-communicator">Ready</div>
-        </div>
-        <div class="agent-desc">Sends text and voice messages to Telegram groups</div>
-      </div>
-    </div>
+    <div class="agent-list" id="agent-list"></div>
     <div class="left-divider"></div>
     <div class="channel-section">
       <div class="panel-title" style="padding:4px 8px 8px">Capabilities</div>
@@ -398,6 +383,74 @@
     return fetch(url, { ...opts, headers: { 'x-secret-key': _sk, ...(opts.headers || {}) } });
   }
 
+  // ── Agent definitions ──────────────────────────────────────────────────────
+  const AGENTS = [
+    { id: 'researcher',   name: 'Researcher',   c1: '#60a5fa', c2: '#1d4ed8', glow: '#3b82f6', desc: 'Fetches URLs, gathers facts, saves findings to shared workspace',         tools: ['fetch_url','write_shared'] },
+    { id: 'writer',       name: 'Writer',       c1: '#c084fc', c2: '#7e22ce', glow: '#a855f7', desc: 'Reads research, writes polished posts, scripts and articles',             tools: ['list_shared','read_shared','write_shared'] },
+    { id: 'coder',        name: 'Coder',        c1: '#fcd34d', c2: '#b45309', glow: '#f59e0b', desc: 'Runs JavaScript to calculate, transform or process data',                 tools: ['run_js','read_shared','write_shared'] },
+    { id: 'communicator', name: 'Communicator', c1: '#22d3ee', c2: '#0e7490', glow: '#06b6d4', desc: 'Sends text and voice messages to Telegram groups via the bot',           tools: ['send_to_group','send_voice'] },
+    { id: 'director',     name: 'Director',     c1: '#f87171', c2: '#991b1b', glow: '#ef4444', desc: 'Orchestrates reel production, scene planning and video direction',        tools: ['build_reel','write_shared'] },
+    { id: 'publisher',    name: 'Publisher',    c1: '#4ade80', c2: '#15803d', glow: '#22c55e', desc: 'Uploads videos to YouTube, manages titles, descriptions and tags',        tools: ['youtube_upload','write_shared'] },
+    { id: 'analyst',      name: 'Analyst',      c1: '#f472b6', c2: '#9d174d', glow: '#ec4899', desc: 'Tracks content performance, summarizes metrics and audience trends',      tools: ['read_shared','run_js','write_shared'] },
+    { id: 'strategist',   name: 'Strategist',   c1: '#fb923c', c2: '#c2410c', glow: '#f97316', desc: 'Plans content calendar, topic strategy and audience targeting',           tools: ['read_shared','write_shared'] },
+  ];
+
+  // ── 3D Humanoid SVG ────────────────────────────────────────────────────────
+  let _svgN = 0;
+  function humanoidSVG(c1, c2, glow, size = 28) {
+    const id = 's' + (_svgN++);
+    return `<svg viewBox="0 0 28 32" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g${id}" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stop-color="${c1}"/>
+          <stop offset="100%" stop-color="${c2}"/>
+        </linearGradient>
+        <filter id="f${id}" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="blur">
+            <animate attributeName="stdDeviation" values="1;2.2;1" dur="3s" repeatCount="indefinite"/>
+          </feGaussianBlur>
+          <feFlood flood-color="${glow}" flood-opacity="0.55" result="clr"/>
+          <feComposite in="clr" in2="blur" operator="in" result="glow"/>
+          <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#f${id})">
+        <!-- head -->
+        <circle cx="14" cy="6" r="5" fill="url(#g${id})"/>
+        <!-- highlight -->
+        <circle cx="12" cy="4.2" r="1.8" fill="rgba(255,255,255,0.28)"/>
+        <!-- neck -->
+        <rect x="12" y="10.5" width="4" height="2" rx="1" fill="url(#g${id})"/>
+        <!-- torso -->
+        <rect x="8" y="13" width="12" height="10" rx="3" fill="url(#g${id})"/>
+        <!-- left arm -->
+        <rect x="2" y="13" width="5.5" height="3" rx="1.5" fill="url(#g${id})"/>
+        <!-- right arm -->
+        <rect x="20.5" y="13" width="5.5" height="3" rx="1.5" fill="url(#g${id})"/>
+        <!-- left leg -->
+        <rect x="8" y="24" width="4.5" height="7" rx="2.25" fill="url(#g${id})"/>
+        <!-- right leg -->
+        <rect x="15.5" y="24" width="4.5" height="7" rx="2.25" fill="url(#g${id})"/>
+      </g>
+    </svg>`;
+  }
+
+  // ── Render agent sidebar ───────────────────────────────────────────────────
+  function renderAgentList() {
+    const el = document.getElementById('agent-list');
+    el.innerHTML = AGENTS.map(a => `
+      <div class="agent-card" id="a-${a.id}">
+        <div class="agent-header">
+          <div class="agent-icon">
+            <div class="humanoid-wrap">${humanoidSVG(a.c1, a.c2, a.glow, 28)}</div>
+          </div>
+          <div class="agent-name">${a.name}</div>
+          <div class="agent-status" id="st-${a.id}">Ready</div>
+        </div>
+        <div class="agent-desc">${a.desc}</div>
+      </div>`).join('');
+  }
+
   // ── Cached data ────────────────────────────────────────────────────────────
   let _status  = null;
   let _groups  = {};
@@ -405,22 +458,16 @@
   let _activePanel = null;
 
   // ── Detail Panel ───────────────────────────────────────────────────────────
-
   function togglePanel(name) {
     const panel = document.getElementById('detail-panel');
     const cards = { bot: 'sc-bot', agents: 'sc-agents', groups: 'sc-groups', reels: 'sc-reels' };
-
-    // Close if same panel clicked again
     if (_activePanel === name) {
       panel.classList.remove('open');
       document.getElementById(cards[name])?.classList.remove('active');
       _activePanel = null;
       return;
     }
-
-    // Deactivate previous
     if (_activePanel) document.getElementById(cards[_activePanel])?.classList.remove('active');
-
     _activePanel = name;
     document.getElementById(cards[name])?.classList.add('active');
     renderDetailPanel(name);
@@ -433,60 +480,28 @@
     if (name === 'bot') {
       const online = _status?.bot === 'online';
       el.innerHTML = `
-        <div class="detail-title">
-          Bot Details
-          <span class="detail-close" onclick="togglePanel('bot')">×</span>
-        </div>
+        <div class="detail-title">Bot Details <span class="detail-close" onclick="togglePanel('bot')">×</span></div>
         <div class="bot-info-grid">
-          <div class="bot-info-card">
-            <div class="bic-label">Status</div>
-            <div class="bic-val" style="color:${online ? 'var(--green)' : 'var(--red)'}">${online ? '● Online' : '○ Offline'}</div>
-          </div>
-          <div class="bot-info-card">
-            <div class="bic-label">Model</div>
-            <div class="bic-val" style="font-size:13px">GPT-4o</div>
-          </div>
-          <div class="bot-info-card">
-            <div class="bic-label">Uptime</div>
-            <div class="bic-val" style="font-size:13px">${_status ? fmtUptime(_status.uptime) : '—'}</div>
-          </div>
-          <div class="bot-info-card">
-            <div class="bic-label">Interface</div>
-            <div class="bic-val" style="font-size:12px">Telegram Bot</div>
-          </div>
-          <div class="bot-info-card">
-            <div class="bic-label">Transport</div>
-            <div class="bic-val" style="font-size:12px">Polling</div>
-          </div>
-          <div class="bot-info-card">
-            <div class="bic-label">Groups</div>
-            <div class="bic-val">${_status?.groups ?? '—'}</div>
-          </div>
+          <div class="bot-info-card"><div class="bic-label">Status</div><div class="bic-val" style="color:${online ? 'var(--green)' : 'var(--red)'}">${online ? '● Online' : '○ Offline'}</div></div>
+          <div class="bot-info-card"><div class="bic-label">Model</div><div class="bic-val" style="font-size:13px">GPT-4o</div></div>
+          <div class="bot-info-card"><div class="bic-label">Uptime</div><div class="bic-val" style="font-size:13px">${_status ? fmtUptime(_status.uptime) : '—'}</div></div>
+          <div class="bot-info-card"><div class="bic-label">Interface</div><div class="bic-val" style="font-size:12px">Telegram Bot</div></div>
+          <div class="bot-info-card"><div class="bic-label">Transport</div><div class="bic-val" style="font-size:12px">Polling</div></div>
+          <div class="bot-info-card"><div class="bic-label">Groups</div><div class="bic-val">${_status?.groups ?? '—'}</div></div>
         </div>`;
     }
 
     else if (name === 'agents') {
-      const agents = [
-        { id: 'researcher',   icon: '🔍', color: 'rgba(59,130,246,.15)',  name: 'Researcher',   desc: 'Fetches URLs, gathers facts, saves findings to shared workspace', tools: ['fetch_url', 'write_shared'] },
-        { id: 'writer',       icon: '✍️',  color: 'rgba(168,85,247,.15)', name: 'Writer',       desc: 'Reads research files, writes polished posts, scripts and articles', tools: ['list_shared', 'read_shared', 'write_shared'] },
-        { id: 'coder',        icon: '⚙️',  color: 'rgba(245,158,11,.15)', name: 'Coder',        desc: 'Runs JavaScript to calculate, transform, or process data', tools: ['run_js', 'read_shared', 'write_shared'] },
-        { id: 'communicator', icon: '📡', color: 'rgba(6,182,212,.15)',   name: 'Communicator', desc: 'Sends text and voice messages to Telegram groups via the bot', tools: ['send_to_group', 'send_voice_to_group'] },
-      ];
       el.innerHTML = `
-        <div class="detail-title">
-          Agent Roster — 4 Specialists
-          <span class="detail-close" onclick="togglePanel('agents')">×</span>
-        </div>
-        <div class="detail-grid cols-4">
-          ${agents.map(a => {
+        <div class="detail-title">Agent Roster — 8 Specialists <span class="detail-close" onclick="togglePanel('agents')">×</span></div>
+        <div class="detail-grid cols-8">
+          ${AGENTS.map(a => {
             const busy = document.getElementById('st-' + a.id)?.textContent === 'Busy';
             return `
             <div class="agent-panel-card">
-              <div class="apc-header">
-                <div class="apc-icon" style="background:${a.color}">${a.icon}</div>
-                <div class="apc-name">${a.name}</div>
-                <div class="apc-badge${busy ? ' busy' : ''}">${busy ? 'Busy' : 'Ready'}</div>
-              </div>
+              <div class="apc-avatar"><div class="humanoid-wrap">${humanoidSVG(a.c1, a.c2, a.glow, 44)}</div></div>
+              <div class="apc-name">${a.name}</div>
+              <div class="apc-badge${busy ? ' busy' : ''}">${busy ? 'Busy' : 'Ready'}</div>
               <div class="apc-desc">${a.desc}</div>
               <div class="apc-tools">${a.tools.map(t => `<span class="apc-tool">${t}</span>`).join('')}</div>
             </div>`;
@@ -497,19 +512,13 @@
     else if (name === 'groups') {
       const entries = Object.entries(_groups);
       el.innerHTML = `
-        <div class="detail-title">
-          Connected Telegram Groups (${entries.length})
-          <span class="detail-close" onclick="togglePanel('groups')">×</span>
-        </div>
+        <div class="detail-title">Connected Telegram Groups (${entries.length}) <span class="detail-close" onclick="togglePanel('groups')">×</span></div>
         ${entries.length ? `
         <div class="groups-panel-list">
           ${entries.map(([n, id]) => `
           <div class="gpc">
             <div class="gpc-icon">👥</div>
-            <div>
-              <div class="gpc-name">${esc(n)}</div>
-              <div class="gpc-id">ID: ${id}</div>
-            </div>
+            <div><div class="gpc-name">${esc(n)}</div><div class="gpc-id">ID: ${id}</div></div>
             <div class="gpc-dot"></div>
           </div>`).join('')}
         </div>` : `<div class="panel-empty">No groups connected yet. Add the bot to a Telegram group.</div>`}`;
@@ -517,10 +526,7 @@
 
     else if (name === 'reels') {
       el.innerHTML = `
-        <div class="detail-title">
-          Content Library (${_content.length} reels)
-          <span class="detail-close" onclick="togglePanel('reels')">×</span>
-        </div>
+        <div class="detail-title">Content Library (${_content.length} reels) <span class="detail-close" onclick="togglePanel('reels')">×</span></div>
         ${_content.length ? `
         <div class="reels-panel-list">
           ${_content.slice(0, 20).map(i => `
@@ -533,19 +539,18 @@
             </div>
             ${i.script ? `<div class="rpc-preview">${esc(i.script)}</div>` : ''}
           </div>`).join('')}
-        </div>` : `<div class="panel-empty">No reels yet. Use 🎬 Create Reel in Telegram or ask the orchestrator.</div>`}`;
+        </div>` : `<div class="panel-empty">No reels yet. Use /reel in Telegram.</div>`}`;
     }
   }
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
   let ws;
-
   function connect() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${proto}//${location.host}?key=${encodeURIComponent(_sk)}`);
-    ws.onopen  = () => setWsStatus(true);
+    ws.onopen    = () => setWsStatus(true);
     ws.onmessage = e => addEvent(JSON.parse(e.data));
-    ws.onclose = () => { setWsStatus(false); setTimeout(connect, 3000); };
+    ws.onclose   = () => { setWsStatus(false); setTimeout(connect, 3000); };
   }
 
   function setWsStatus(ok) {
@@ -565,7 +570,7 @@
     const type = ev.type || 'system';
     d.innerHTML = `<span class="ev-time">${time}</span><span class="ev-type t-${type}">${type.toUpperCase()}</span><span class="ev-msg">${esc(ev.message)}</span>`;
     if (type === 'agent') {
-      const m = ev.message.match(/→ (researcher|writer|coder|communicator)/i);
+      const m = ev.message.match(/→ (researcher|writer|coder|communicator|director|publisher|analyst|strategist)/i);
       if (m) markAgent(m[1].toLowerCase(), true);
     }
     feed.appendChild(d);
@@ -578,7 +583,7 @@
   // ── Agent status ───────────────────────────────────────────────────────────
   const agentTimers = {};
   function markAgent(name, busy) {
-    const el = document.getElementById('st-' + name);
+    const el   = document.getElementById('st-' + name);
     const card = document.getElementById('a-' + name);
     if (!el) return;
     if (busy) {
@@ -691,6 +696,7 @@
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
+  renderAgentList();
   connect();
   loadStatus(); loadContent(); loadGroups();
   setInterval(loadStatus,  8000);
