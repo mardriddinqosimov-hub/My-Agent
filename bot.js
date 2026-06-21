@@ -6,6 +6,7 @@ import https from 'https';
 import OpenAI from 'openai';
 import { chat } from './core.js';
 import { runReelFactory, outDir, generateAIImages } from './content/factory.js';
+import { buildCustomReel, parseScenes } from './content/reel_builder.js';
 import { uploadToYouTube } from './youtube/uploader.js';
 import { runOrchestrator } from './agents/orchestrator.js';
 import { log } from './events.js';
@@ -109,6 +110,7 @@ bot.setMyCommands([
   { command: 'groups',   description: 'List connected Telegram groups' },
   { command: 'addgroup', description: 'Register a group — /addgroup [name] [id]' },
   { command: 'content',  description: 'Create a reel — /content [topic]' },
+  { command: 'reel',     description: 'Custom reel — /reel [seconds] [topic]' },
 ]);
 
 // ── Keyboards ──────────────────────────────────────────────────────────────────
@@ -181,6 +183,61 @@ bot.onText(/\/content(?:\s+([\s\S]+))?/, (msg, match) => {
 
   if (usePhotos) askForImages(chatId, topic, sendToGroup);
   else           startWithAI(chatId, topic, sendToGroup);
+});
+
+bot.onText(/\/reel(?:\s+([\s\S]+))?/, async (msg, match) => {
+  if (msg.from?.id !== ALLOWED_ID) return;
+  const chatId = msg.chat.id;
+  const raw = (match[1] || '').trim();
+
+  if (!raw) return bot.sendMessage(chatId,
+    'Usage:\n/reel [seconds] [topic]\n[Scene 1]\n[Scene 2]\n...\n\nExample:\n/reel 60 Democracy\n1. Democracy is dying.\n2. Every law passed in silence takes a freedom.\n3. They don\'t need guns. Just your apathy.\n4. Wake up. Share this.'
+  );
+
+  // Parse first line: "60 Democracy" or "60"
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const firstLine = lines[0];
+  const firstLineMatch = firstLine.match(/^(\d+)\s*(.*)?$/);
+
+  if (!firstLineMatch) return bot.sendMessage(chatId, '⚠️ First line must be the duration in seconds.\nExample: /reel 60 Democracy');
+
+  const targetSeconds = parseInt(firstLineMatch[1], 10);
+  const topic = firstLineMatch[2]?.trim() || 'reel';
+  const sceneLines = lines.slice(1);
+
+  if (sceneLines.length === 0) return bot.sendMessage(chatId, '⚠️ No scenes found. Write each scene on a new line after the duration.');
+
+  const scenes = parseScenes(sceneLines.join('\n'));
+  if (scenes.length === 0) return bot.sendMessage(chatId, '⚠️ Could not parse scenes. Write each scene on its own line.');
+
+  const statusMsg = await bot.sendMessage(chatId,
+    `🎬 *${topic}*\n\n📋 ${scenes.length} scenes | 🎯 ${targetSeconds}s target\n\n⏳ Starting...`,
+    { parse_mode: 'Markdown' }
+  );
+
+  try {
+    const result = await buildCustomReel(scenes, targetSeconds, topic, async (update) => {
+      await bot.editMessageText(`🎬 *${topic}*\n\n${update}`, {
+        chat_id: chatId, message_id: statusMsg.message_id, parse_mode: 'Markdown'
+      }).catch(() => {});
+    });
+
+    await bot.sendAudio(chatId, result.audio, { caption: '🎙 Voiceover' });
+    await bot.sendVideo(chatId, result.video, { caption: `🎬 *${topic}*`, parse_mode: 'Markdown' });
+
+    const upId = storeUpload(result.video, topic);
+    await bot.sendMessage(chatId, '✅ Reel ready! Upload to YouTube?', {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '📺 Yes, upload to YouTube', callback_data: `yt_upload:${upId}` },
+          { text: '✖ No thanks', callback_data: 'yt_skip' }
+        ]]
+      }
+    });
+  } catch (err) {
+    bot.sendMessage(chatId, `⚠️ Reel error: ${err.message}`);
+    console.error('[REEL]', err.message);
+  }
 });
 
 // ── Content Factory — step 2: generate or collect images ─────────────────────
