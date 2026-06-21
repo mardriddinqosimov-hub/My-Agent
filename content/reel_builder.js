@@ -106,7 +106,7 @@ function renderFinal(fittedPaths, audioPath, srtPath, dir) {
   runFFmpeg(`"${FFMPEG}" -f concat -safe 0 -i "${fwd(concatFile)}" -i "${fwd(audioPath)}" -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 192k -shortest -y "${fwd(tempPath)}" -loglevel warning`);
 
   const srtEsc = IS_WIN ? fwd(srtPath).replace(/^([A-Za-z]):/, '$1\\:') : fwd(srtPath);
-  const style  = 'FontName=Arial,FontSize=12,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=3,Shadow=2,Bold=1,Alignment=2,MarginL=30,MarginR=30,MarginV=32';
+  const style  = 'FontName=Arial,FontSize=11,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=1,Shadow=0,Bold=0,Alignment=2,MarginL=50,MarginR=50,MarginV=40';
   runFFmpeg(`"${FFMPEG}" -i "${fwd(tempPath)}" -vf "subtitles='${srtEsc}':force_style='${style}'" -c:v libx264 -preset fast -crf 22 -c:a copy -y "${fwd(videoPath)}" -loglevel warning`);
 
   [concatFile, tempPath, ...fittedPaths].forEach(p => { try { fs.unlinkSync(p); } catch {} });
