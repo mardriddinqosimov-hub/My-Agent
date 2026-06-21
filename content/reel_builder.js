@@ -46,28 +46,43 @@ async function sceneToVisualPrompt(scene, index, total, topic) {
   return res.choices[0].message.content.trim();
 }
 
-// Generate one video clip via fal.ai Haiper Video
+// Generate one AI image via FLUX then animate with Ken Burns zoom/pan
 async function generateClip(prompt, clipSeconds, dir, index, onProgress) {
-  onProgress?.(`🎬 Scene ${index + 1}: generating AI video...`);
+  onProgress?.(`🎨 Scene ${index + 1}: generating AI image...`);
   fal.config({ credentials: process.env.FAL_API_KEY });
 
-  const duration = clipSeconds >= 6 ? '6' : '4';
-
-  const result = await fal.subscribe('fal-ai/haiper-video-v2', {
+  const result = await fal.subscribe('fal-ai/flux/schnell', {
     input: {
       prompt,
-      duration,
-      aspect_ratio: '9:16'
+      image_size: 'portrait_9_16',
+      num_inference_steps: 8,
+      num_images: 1,
+      enable_safety_checker: false
     },
     logs: false,
     onQueueUpdate: () => {}
   });
 
-  const url = result.data?.video?.url;
-  if (!url) throw new Error(`fal.ai returned no video URL for scene ${index + 1}`);
+  const url = result.data?.images?.[0]?.url;
+  if (!url) throw new Error(`fal.ai returned no image URL for scene ${index + 1}`);
 
+  const imgPath = path.join(dir, `img_${index}.jpg`);
+  await downloadUrl(url, imgPath);
+
+  // Ken Burns: alternate zoom-in and zoom-out with slight pans
   const clipPath = path.join(dir, `clip_${index}.mp4`);
-  await downloadUrl(url, clipPath);
+  const frames = Math.ceil(clipSeconds * 25);
+  const zooms = [
+    `zoompan=z='min(zoom+0.0015,1.5)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'`,
+    `zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'`,
+    `zoompan=z='min(zoom+0.0015,1.5)':x='0':y='0'`,
+    `zoompan=z='min(zoom+0.0015,1.5)':x='iw-(iw/zoom)':y='ih-(ih/zoom)'`,
+  ];
+  const zf = zooms[index % zooms.length];
+
+  runFFmpeg(`"${FFMPEG}" -loop 1 -i "${fwd(imgPath)}" -vf "${zf}:d=${frames}:s=1080x1920,fps=25,scale=1080:1920" -t ${clipSeconds.toFixed(3)} -c:v libx264 -preset fast -crf 22 -an -y "${fwd(clipPath)}" -loglevel warning`);
+
+  try { fs.unlinkSync(imgPath); } catch {}
   onProgress?.(`✅ Scene ${index + 1} ready`);
   return clipPath;
 }
