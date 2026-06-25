@@ -118,24 +118,21 @@ function renderFinal(fittedPaths, audioPath, srtPath, dir) {
 export async function buildCustomReel(scenes, targetSeconds, topic, onProgress) {
   const dir = outDir(topic);
 
-  // Step 1: voiceover
+  // Step 1: voiceover — always natural speed, video length follows speech
   onProgress?.('🎙 Generating voiceover...');
   const fullScript = scenes.join(' ');
-  const wordCount  = fullScript.split(/\s+/).length;
-  const naturalDuration = (wordCount / 120) * 60;
-  const speed = Math.min(4.0, Math.max(0.25, parseFloat((naturalDuration / targetSeconds).toFixed(2))));
 
   const mp3 = await openai.audio.speech.create({
     model: 'tts-1-hd',
     voice: 'onyx',
     input: fullScript,
-    speed
+    speed: 1.0
   });
   const audioPath = path.join(dir, 'voiceover.mp3');
   fs.writeFileSync(audioPath, Buffer.from(await mp3.arrayBuffer()));
 
   const actualDuration = getVideoDuration(audioPath);
-  onProgress?.(`🎙 Voiceover: ${actualDuration.toFixed(1)}s (target ${targetSeconds}s, speed ${speed}x)`);
+  onProgress?.(`🎙 Voiceover: ${actualDuration.toFixed(1)}s (natural speed, target was ${targetSeconds}s)`);
 
   // Step 2: subtitles
   const srtPath = await generateSubtitles(audioPath, dir, onProgress);
